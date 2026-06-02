@@ -4,7 +4,12 @@ import Icon from "@/components/ui/icon";
 type IconName = Parameters<typeof Icon>[0]["name"];
 
 // ───────── Types ─────────
-type Section = "dashboard" | "cases" | "clients" | "documents" | "tasks" | "calendar" | "reviewed" | "payments";
+type Section = "dashboard" | "cases" | "clients" | "documents" | "tasks" | "calendar" | "reviewed" | "payments" | "users";
+
+interface SystemUser {
+  id: number; name: string; email: string; role: "admin" | "lawyer" | "assistant" | "readonly";
+  status: "active" | "inactive" | "blocked"; lastLogin: string; cases: number; avatar: string;
+}
 
 interface Client {
   id: number; name: string; phone: string; email: string; type: string;
@@ -681,6 +686,206 @@ const CalendarSection = () => {
   );
 };
 
+const SYSTEM_USERS: SystemUser[] = [
+  { id: 1, name: "Алексей Правдин", email: "pravdin@lexoffice.ru", role: "admin", status: "active", lastLogin: "Сегодня, 09:15", cases: 12, avatar: "А" },
+  { id: 2, name: "Елена Соколова", email: "sokolova@lexoffice.ru", role: "lawyer", status: "active", lastLogin: "Сегодня, 08:40", cases: 7, avatar: "Е" },
+  { id: 3, name: "Игорь Громов", email: "gromov@lexoffice.ru", role: "lawyer", status: "active", lastLogin: "Вчера, 18:22", cases: 5, avatar: "И" },
+  { id: 4, name: "Мария Власова", email: "vlasova@lexoffice.ru", role: "assistant", status: "active", lastLogin: "Вчера, 17:05", cases: 0, avatar: "М" },
+  { id: 5, name: "Дмитрий Кузин", email: "kuzin@lexoffice.ru", role: "readonly", status: "inactive", lastLogin: "15.05.2026", cases: 0, avatar: "Д" },
+  { id: 6, name: "Ольга Тихонова", email: "tikhonova@lexoffice.ru", role: "lawyer", status: "blocked", lastLogin: "01.04.2026", cases: 2, avatar: "О" },
+];
+
+// ───────── Section: Users ─────────
+const UsersSection = () => {
+  const [filter, setFilter] = useState("all");
+  const [search, setSearch] = useState("");
+
+  const roleMap: Record<string, { label: string; cls: string; color: string }> = {
+    admin:     { label: "Администратор", cls: "badge-urgent",  color: "text-red-400" },
+    lawyer:    { label: "Юрист",         cls: "badge-active",  color: "text-green-400" },
+    assistant: { label: "Ассистент",     cls: "badge-info",    color: "text-blue-400" },
+    readonly:  { label: "Только чтение", cls: "badge-pending", color: "text-yellow-400" },
+  };
+  const statusMap: Record<string, { label: string; dot: string }> = {
+    active:   { label: "Активен",   dot: "bg-green-400" },
+    inactive: { label: "Неактивен", dot: "bg-yellow-400" },
+    blocked:  { label: "Заблокирован", dot: "bg-red-500" },
+  };
+  const avatarColor: Record<string, string> = {
+    admin:     "bg-red-500/15 text-red-400",
+    lawyer:    "bg-green-500/15 text-green-400",
+    assistant: "bg-blue-500/15 text-blue-400",
+    readonly:  "bg-yellow-500/15 text-yellow-400",
+  };
+
+  const filters = [
+    { key: "all", label: "Все" },
+    { key: "admin", label: "Администраторы" },
+    { key: "lawyer", label: "Юристы" },
+    { key: "assistant", label: "Ассистенты" },
+    { key: "readonly", label: "Только чтение" },
+  ];
+
+  const q = search.toLowerCase();
+  const filtered = SYSTEM_USERS.filter(u => {
+    const matchRole = filter === "all" || u.role === filter;
+    const matchSearch = !q || u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q);
+    return matchRole && matchSearch;
+  });
+
+  const activeCount = SYSTEM_USERS.filter(u => u.status === "active").length;
+
+  return (
+    <div className="space-y-4 animate-fade-in">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-bold text-foreground">Пользователи системы</h2>
+          <p className="text-sm text-muted-foreground">{activeCount} активных из {SYSTEM_USERS.length}</p>
+        </div>
+        <button className="flex items-center gap-2 px-4 py-2 bg-electric text-background rounded-lg text-sm font-medium hover:opacity-90 transition-opacity">
+          <Icon name="UserPlus" size={16} />
+          Добавить
+        </button>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-4 gap-3">
+        {[
+          { role: "admin",     count: SYSTEM_USERS.filter(u => u.role === "admin").length },
+          { role: "lawyer",    count: SYSTEM_USERS.filter(u => u.role === "lawyer").length },
+          { role: "assistant", count: SYSTEM_USERS.filter(u => u.role === "assistant").length },
+          { role: "readonly",  count: SYSTEM_USERS.filter(u => u.role === "readonly").length },
+        ].map(s => (
+          <button
+            key={s.role}
+            onClick={() => setFilter(s.role)}
+            className={`p-3 rounded-xl border text-left transition-all hover-scale ${filter === s.role ? "border-electric/40 bg-electric/5" : "border-border surface"}`}
+          >
+            <div className={`text-xl font-bold ${roleMap[s.role].color}`}>{s.count}</div>
+            <div className="text-xs text-muted-foreground mt-0.5">{roleMap[s.role].label}</div>
+          </button>
+        ))}
+      </div>
+
+      {/* Search + filters */}
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1">
+          <Icon name="Search" size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Поиск по имени или email..."
+            className="w-full pl-9 pr-9 py-2.5 bg-surface-2 border border-border rounded-xl text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-electric transition-colors"
+          />
+          {search && (
+            <button onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+              <Icon name="X" size={14} />
+            </button>
+          )}
+        </div>
+        <div className="flex gap-2 flex-wrap">
+          {filters.slice(0, 3).map(f => (
+            <button
+              key={f.key}
+              onClick={() => setFilter(f.key)}
+              className={`px-3 py-2 rounded-xl text-sm font-medium transition-all whitespace-nowrap ${filter === f.key ? "bg-electric text-background" : "bg-surface-2 text-muted-foreground hover:text-foreground"}`}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Table header */}
+      <div className="hidden lg:grid grid-cols-[1fr_180px_140px_100px_80px] gap-4 px-4 text-xs text-muted-foreground uppercase tracking-wider">
+        <div>Пользователь</div>
+        <div>Роль</div>
+        <div>Последний вход</div>
+        <div>Статус</div>
+        <div className="text-right">Дел</div>
+      </div>
+
+      {/* Users list */}
+      <div className="space-y-2">
+        {filtered.map(user => (
+          <div key={user.id} className="p-4 rounded-xl border border-border surface hover:border-electric/30 hover-scale cursor-pointer transition-colors">
+            <div className="flex items-center gap-4">
+              {/* Avatar */}
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 font-bold text-base ${avatarColor[user.role]}`}>
+                {user.avatar}
+              </div>
+
+              {/* Name + email */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-0.5">
+                  <span className="font-semibold text-foreground">{user.name}</span>
+                  {user.id === 1 && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-electric/15 text-electric font-medium">Вы</span>
+                  )}
+                </div>
+                <div className="text-xs text-muted-foreground">{user.email}</div>
+              </div>
+
+              {/* Role */}
+              <div className="hidden lg:block w-44 shrink-0">
+                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${roleMap[user.role].cls}`}>
+                  {roleMap[user.role].label}
+                </span>
+              </div>
+
+              {/* Last login */}
+              <div className="hidden lg:block w-36 text-sm text-muted-foreground shrink-0">
+                {user.lastLogin}
+              </div>
+
+              {/* Status */}
+              <div className="hidden lg:flex items-center gap-1.5 w-24 shrink-0">
+                <div className={`w-2 h-2 rounded-full ${statusMap[user.status].dot} ${user.status === "active" ? "animate-pulse-dot" : ""}`} />
+                <span className="text-sm text-muted-foreground">{statusMap[user.status].label}</span>
+              </div>
+
+              {/* Cases count */}
+              <div className="hidden lg:block w-10 text-right shrink-0">
+                {user.cases > 0
+                  ? <span className="text-sm font-bold text-electric">{user.cases}</span>
+                  : <span className="text-sm text-muted-foreground">—</span>
+                }
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-1 shrink-0 ml-2">
+                <button className="p-2 rounded-lg bg-surface-2 hover:bg-surface-3 transition-colors" title="Редактировать">
+                  <Icon name="Pencil" size={13} className="text-muted-foreground" />
+                </button>
+                {user.status === "blocked"
+                  ? <button className="p-2 rounded-lg bg-green-500/10 hover:bg-green-500/20 transition-colors" title="Разблокировать">
+                      <Icon name="Unlock" size={13} className="text-green-400" />
+                    </button>
+                  : <button className="p-2 rounded-lg bg-surface-2 hover:bg-red-500/10 transition-colors" title="Заблокировать">
+                      <Icon name="Lock" size={13} className="text-muted-foreground hover:text-red-400" />
+                    </button>
+                }
+              </div>
+            </div>
+
+            {/* Mobile extras */}
+            <div className="lg:hidden mt-3 flex items-center gap-3 flex-wrap">
+              <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${roleMap[user.role].cls}`}>
+                {roleMap[user.role].label}
+              </span>
+              <div className="flex items-center gap-1.5">
+                <div className={`w-1.5 h-1.5 rounded-full ${statusMap[user.status].dot}`} />
+                <span className="text-xs text-muted-foreground">{statusMap[user.status].label}</span>
+              </div>
+              <span className="text-xs text-muted-foreground">{user.lastLogin}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 // ───────── Section: Reviewed ─────────
 const ReviewedSection = () => {
   const [filter, setFilter] = useState("all");
@@ -940,6 +1145,7 @@ export default function Index() {
     { key: "calendar" as Section, icon: "Calendar", label: "Календарь" },
     { key: "reviewed" as Section, icon: "Archive", label: "Рассмотренные" },
     { key: "payments" as Section, icon: "Wallet", label: "Выплаты" },
+    { key: "users" as Section, icon: "ShieldCheck", label: "Пользователи" },
   ];
 
   const urgentCount = NOTIFICATIONS.filter(n => n.type === "urgent").length;
@@ -954,6 +1160,7 @@ export default function Index() {
       case "calendar": return <CalendarSection />;
       case "reviewed": return <ReviewedSection />;
       case "payments": return <PaymentsSection />;
+      case "users": return <UsersSection />;
     }
   };
 
