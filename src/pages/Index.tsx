@@ -18,11 +18,15 @@ interface Client {
 interface Case {
   id: number; title: string; client: string; category: string;
   status: "active" | "pending" | "closed" | "urgent"; deadline: string; court?: string; priority: "high" | "medium" | "low";
-  // Поля шаблона
+  // Истец
   fullName: string; birthDate: string; address: string;
   passportSeries: string; passportNumber: string; passportIssued: string; passportDate: string;
   vehicle: string; vehiclePlate: string;
   policyNumber: string; insuranceCompany: string;
+  // Виновник ДТП
+  guiltFullName: string; guiltBirthDate: string; guiltAddress: string;
+  guiltOwnerName: string; guiltOwnerAddress: string;
+  guiltVehicle: string; guiltVehiclePlate: string; guiltInsuranceCompany: string;
 }
 interface Document {
   id: number; title: string; case: string; type: string; version: number;
@@ -240,6 +244,10 @@ const emptyForm = {
   vehicle: "", vehiclePlate: "",
   policyNumber: "", insuranceCompany: "",
   court: "", deadline: "", priority: "medium" as "high" | "medium" | "low",
+  // Виновник
+  guiltFullName: "", guiltBirthDate: "", guiltAddress: "",
+  guiltOwnerName: "", guiltOwnerAddress: "",
+  guiltVehicle: "", guiltVehiclePlate: "", guiltInsuranceCompany: "",
 };
 
 const inputCls = "w-full px-3 py-2.5 bg-surface-2 border border-border rounded-xl text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-electric transition-colors";
@@ -357,6 +365,46 @@ const NewCaseModal = ({ onClose, onSave }: { onClose: () => void; onSave: (c: Ca
       ),
     },
     {
+      title: "Виновник ДТП",
+      icon: "AlertTriangle",
+      fields: (
+        <div className="space-y-4">
+          <div>
+            <label className="text-xs text-muted-foreground mb-1.5 block">ФИО виновника</label>
+            <input value={form.guiltFullName} onChange={set("guiltFullName")} placeholder="Петров Пётр Петрович" className={inputCls} />
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground mb-1.5 block">Дата рождения</label>
+            <input type="date" value={form.guiltBirthDate} onChange={set("guiltBirthDate")} className={inputCls} />
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground mb-1.5 block">Адрес проживания</label>
+            <input value={form.guiltAddress} onChange={set("guiltAddress")} placeholder="г. Москва, ул. Примерная, д. 5" className={inputCls} />
+          </div>
+          <div className="border-t border-border pt-4">
+            <label className="text-xs text-muted-foreground mb-1.5 block">Собственник ТС (если отличается от виновника)</label>
+            <input value={form.guiltOwnerName} onChange={set("guiltOwnerName")} placeholder="ФИО или наименование организации" className={inputCls} />
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground mb-1.5 block">Адрес собственника ТС</label>
+            <input value={form.guiltOwnerAddress} onChange={set("guiltOwnerAddress")} placeholder="г. Москва, ул. Примерная, д. 5" className={inputCls} />
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground mb-1.5 block">ТС виновника (марка, модель)</label>
+            <input value={form.guiltVehicle} onChange={set("guiltVehicle")} placeholder="Hyundai Solaris 2020" className={inputCls} />
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground mb-1.5 block">Гос. номер ТС виновника</label>
+            <input value={form.guiltVehiclePlate} onChange={set("guiltVehiclePlate")} placeholder="Б 456 ВГ 77" className={inputCls} />
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground mb-1.5 block">Страховая компания виновника</label>
+            <input value={form.guiltInsuranceCompany} onChange={set("guiltInsuranceCompany")} placeholder="Альфастрахование, РЕСО..." className={inputCls} />
+          </div>
+        </div>
+      ),
+    },
+    {
       title: "ТС и полис",
       icon: "Car",
       fields: (
@@ -415,6 +463,10 @@ const NewCaseModal = ({ onClose, onSave }: { onClose: () => void; onSave: (c: Ca
       passportIssued: form.passportIssued, passportDate: form.passportDate,
       vehicle: form.vehicle, vehiclePlate: form.vehiclePlate,
       policyNumber: form.policyNumber, insuranceCompany: form.insuranceCompany,
+      guiltFullName: form.guiltFullName, guiltBirthDate: form.guiltBirthDate, guiltAddress: form.guiltAddress,
+      guiltOwnerName: form.guiltOwnerName, guiltOwnerAddress: form.guiltOwnerAddress,
+      guiltVehicle: form.guiltVehicle, guiltVehiclePlate: form.guiltVehiclePlate,
+      guiltInsuranceCompany: form.guiltInsuranceCompany,
     });
   };
 
@@ -495,40 +547,53 @@ const NewCaseModal = ({ onClose, onSave }: { onClose: () => void; onSave: (c: Ca
 const generateStatement = (c: Case): string => {
   const today = new Date().toLocaleDateString("ru-RU");
   const bd = c.birthDate ? new Date(c.birthDate).toLocaleDateString("ru-RU") : "________";
+  const gbd = c.guiltBirthDate ? new Date(c.guiltBirthDate).toLocaleDateString("ru-RU") : "________";
   const pd = c.passportDate ? new Date(c.passportDate).toLocaleDateString("ru-RU") : "________";
   const court = c.court || "________________";
   const passport = [c.passportSeries, c.passportNumber].filter(Boolean).join(" ") || "________";
+  const owner = c.guiltOwnerName || c.guiltFullName || "________________";
+  const ownerAddr = c.guiltOwnerAddress || c.guiltAddress || "________________";
 
   return `В ${court}
 
 Истец: ${c.fullName || "________________"},
-${bd} года рождения,
-проживающий(ая) по адресу: ${c.address || "________________"},
-паспорт: серия ${passport},
-выдан: ${c.passportIssued || "________________"} ${pd} г.
+дата рождения: ${bd} г.,
+адрес: ${c.address || "________________"},
+паспорт: серия ${passport}, выдан ${c.passportIssued || "________________"} ${pd} г.
+
+Ответчик: ${c.guiltInsuranceCompany || "________________"}
 
 ИСКОВОЕ ЗАЯВЛЕНИЕ
 о взыскании страхового возмещения
 
-Я, ${c.fullName || "________________"}, являюсь собственником транспортного средства ${c.vehicle || "________________"}, государственный регистрационный знак ${c.vehiclePlate || "________________"}.
+Я, ${c.fullName || "________________"}, являюсь собственником транспортного средства: ${c.vehicle || "________________"}, государственный регистрационный знак ${c.vehiclePlate || "________________"}.
 
 Транспортное средство застраховано по полису ОСАГО № ${c.policyNumber || "________________"}, страховая компания: ${c.insuranceCompany || "________________"}.
 
-В результате произошедшего страхового случая мне был причинён ущерб, который страховая компания отказывается возмещать в добровольном порядке либо выплатила возмещение не в полном объёме.
+В результате дорожно-транспортного происшествия виновником которого является:
+— ${c.guiltFullName || "________________"}, дата рождения: ${gbd} г.,
+  адрес проживания: ${c.guiltAddress || "________________"};
+— транспортное средство виновника: ${c.guiltVehicle || "________________"},
+  государственный регистрационный знак: ${c.guiltVehiclePlate || "________________"};
+— собственник транспортного средства: ${owner},
+  адрес: ${ownerAddr};
+— страховая компания виновника: ${c.guiltInsuranceCompany || "________________"}.
+
+Мне был причинён имущественный ущерб. Страховая компания ответчика отказывается возмещать ущерб в добровольном порядке либо произвела выплату не в полном объёме.
 
 На основании изложенного, руководствуясь ст. 12, 16.1 Федерального закона «Об обязательном страховании гражданской ответственности владельцев транспортных средств»,
 
 ПРОШУ:
 
-1. Взыскать с ${c.insuranceCompany || "ответчика"} страховое возмещение в полном объёме.
+1. Взыскать с ${c.guiltInsuranceCompany || "ответчика"} страховое возмещение в полном объёме.
 2. Взыскать с ответчика неустойку за нарушение сроков выплаты страхового возмещения.
 3. Взыскать с ответчика судебные расходы и расходы на оплату услуг представителя.
 
 Приложения:
-— копия паспорта;
-— свидетельство о регистрации ТС;
+— копия паспорта истца;
+— свидетельство о регистрации ТС истца;
 — страховой полис № ${c.policyNumber || "________________"};
-— документы о страховом случае;
+— документы о ДТП (справка, схема, постановление);
 — досудебная претензия (при наличии).
 
 ${today} г.                    ________________ / ${c.fullName || ""}`;
@@ -572,21 +637,39 @@ const CaseCard = ({ c }: { c: Case }) => {
       </div>
 
       {tab === "data" && (
-        <div className="p-4">
-          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-            {fmt("ФИО", c.fullName)}
-            {fmt("Дата рождения", c.birthDate ? new Date(c.birthDate).toLocaleDateString("ru-RU") : "")}
-            {fmt("Адрес", c.address)}
-            {fmt("Паспорт серия/номер", [c.passportSeries, c.passportNumber].filter(Boolean).join(" "))}
-            {fmt("Кем выдан", c.passportIssued)}
-            {fmt("Дата выдачи", c.passportDate ? new Date(c.passportDate).toLocaleDateString("ru-RU") : "")}
-            {fmt("Транспортное средство", c.vehicle)}
-            {fmt("Гос. номер", c.vehiclePlate)}
-            {fmt("Полис", c.policyNumber)}
-            {fmt("Страховая компания", c.insuranceCompany)}
-            {fmt("Суд", c.court || "")}
-            {fmt("Дедлайн", c.deadline)}
+        <div className="p-4 space-y-5">
+          <div>
+            <div className="text-xs font-semibold text-electric uppercase tracking-wider mb-3">Истец</div>
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+              {fmt("ФИО", c.fullName)}
+              {fmt("Дата рождения", c.birthDate ? new Date(c.birthDate).toLocaleDateString("ru-RU") : "")}
+              {fmt("Адрес", c.address)}
+              {fmt("Паспорт серия/номер", [c.passportSeries, c.passportNumber].filter(Boolean).join(" "))}
+              {fmt("Кем выдан", c.passportIssued)}
+              {fmt("Дата выдачи", c.passportDate ? new Date(c.passportDate).toLocaleDateString("ru-RU") : "")}
+              {fmt("Транспортное средство", c.vehicle)}
+              {fmt("Гос. номер", c.vehiclePlate)}
+              {fmt("Полис ОСАГО", c.policyNumber)}
+              {fmt("Страховая компания истца", c.insuranceCompany)}
+              {fmt("Суд", c.court || "")}
+              {fmt("Дедлайн", c.deadline)}
+            </div>
           </div>
+          {(c.guiltFullName || c.guiltVehicle || c.guiltInsuranceCompany) && (
+            <div className="border-t border-border pt-5">
+              <div className="text-xs font-semibold text-red-400 uppercase tracking-wider mb-3">Виновник ДТП</div>
+              <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+                {fmt("ФИО виновника", c.guiltFullName)}
+                {fmt("Дата рождения", c.guiltBirthDate ? new Date(c.guiltBirthDate).toLocaleDateString("ru-RU") : "")}
+                {fmt("Адрес виновника", c.guiltAddress)}
+                {fmt("Собственник ТС", c.guiltOwnerName)}
+                {fmt("Адрес собственника", c.guiltOwnerAddress)}
+                {fmt("ТС виновника", c.guiltVehicle)}
+                {fmt("Гос. номер ТС виновника", c.guiltVehiclePlate)}
+                {fmt("Страховая компания виновника", c.guiltInsuranceCompany)}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
