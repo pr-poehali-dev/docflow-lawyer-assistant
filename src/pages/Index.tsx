@@ -23,6 +23,8 @@ interface Case {
   passportSeries: string; passportNumber: string; passportIssued: string; passportDate: string;
   vehicle: string; vehiclePlate: string;
   policyNumber: string; insuranceCompany: string;
+  // Водитель ТС клиента
+  driverFullName: string; driverBirthDate: string; driverAddress: string; driverInsuranceCompany: string;
   // Виновник ДТП
   guiltFullName: string; guiltBirthDate: string; guiltAddress: string;
   guiltOwnerName: string; guiltOwnerAddress: string;
@@ -244,6 +246,8 @@ const emptyForm = {
   vehicle: "", vehiclePlate: "",
   policyNumber: "", insuranceCompany: "",
   court: "", deadline: "", priority: "medium" as "high" | "medium" | "low",
+  // Водитель ТС клиента
+  driverFullName: "", driverBirthDate: "", driverAddress: "", driverInsuranceCompany: "",
   // Виновник
   guiltFullName: "", guiltBirthDate: "", guiltAddress: "",
   guiltOwnerName: "", guiltOwnerAddress: "",
@@ -405,6 +409,33 @@ const NewCaseModal = ({ onClose, onSave }: { onClose: () => void; onSave: (c: Ca
       ),
     },
     {
+      title: "Водитель ТС",
+      icon: "UserCheck",
+      fields: (
+        <div className="space-y-4">
+          <p className="text-xs text-muted-foreground bg-surface-2 rounded-xl px-3 py-2">
+            Водитель транспортного средства клиента — если отличается от собственника (истца)
+          </p>
+          <div>
+            <label className="text-xs text-muted-foreground mb-1.5 block">ФИО водителя</label>
+            <input value={form.driverFullName} onChange={set("driverFullName")} placeholder="Иванов Иван Иванович" className={inputCls} />
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground mb-1.5 block">Дата рождения</label>
+            <input type="date" value={form.driverBirthDate} onChange={set("driverBirthDate")} className={inputCls} />
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground mb-1.5 block">Место проживания</label>
+            <input value={form.driverAddress} onChange={set("driverAddress")} placeholder="г. Москва, ул. Ленина, д. 1, кв. 1" className={inputCls} />
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground mb-1.5 block">Страховая компания</label>
+            <input value={form.driverInsuranceCompany} onChange={set("driverInsuranceCompany")} placeholder="СОГАЗ, Росгосстрах..." className={inputCls} />
+          </div>
+        </div>
+      ),
+    },
+    {
       title: "ТС и полис",
       icon: "Car",
       fields: (
@@ -463,6 +494,8 @@ const NewCaseModal = ({ onClose, onSave }: { onClose: () => void; onSave: (c: Ca
       passportIssued: form.passportIssued, passportDate: form.passportDate,
       vehicle: form.vehicle, vehiclePlate: form.vehiclePlate,
       policyNumber: form.policyNumber, insuranceCompany: form.insuranceCompany,
+      driverFullName: form.driverFullName, driverBirthDate: form.driverBirthDate,
+      driverAddress: form.driverAddress, driverInsuranceCompany: form.driverInsuranceCompany,
       guiltFullName: form.guiltFullName, guiltBirthDate: form.guiltBirthDate, guiltAddress: form.guiltAddress,
       guiltOwnerName: form.guiltOwnerName, guiltOwnerAddress: form.guiltOwnerAddress,
       guiltVehicle: form.guiltVehicle, guiltVehiclePlate: form.guiltVehiclePlate,
@@ -554,13 +587,18 @@ const generateStatement = (c: Case): string => {
   const owner = c.guiltOwnerName || c.guiltFullName || "________________";
   const ownerAddr = c.guiltOwnerAddress || c.guiltAddress || "________________";
 
+  const driverBd = c.driverBirthDate ? new Date(c.driverBirthDate).toLocaleDateString("ru-RU") : "________";
+  const driverBlock = c.driverFullName
+    ? `\nВодитель транспортного средства истца: ${c.driverFullName}, дата рождения: ${driverBd} г.,\nадрес: ${c.driverAddress || "________________"}, страховая компания: ${c.driverInsuranceCompany || "________________"}.\n`
+    : "";
+
   return `В ${court}
 
 Истец: ${c.fullName || "________________"},
 дата рождения: ${bd} г.,
 адрес: ${c.address || "________________"},
 паспорт: серия ${passport}, выдан ${c.passportIssued || "________________"} ${pd} г.
-
+${driverBlock}
 Ответчик: ${c.guiltInsuranceCompany || "________________"}
 
 ИСКОВОЕ ЗАЯВЛЕНИЕ
@@ -655,6 +693,17 @@ const CaseCard = ({ c }: { c: Case }) => {
               {fmt("Дедлайн", c.deadline)}
             </div>
           </div>
+          {(c.driverFullName || c.driverAddress || c.driverInsuranceCompany) && (
+            <div className="border-t border-border pt-5">
+              <div className="text-xs font-semibold text-yellow-400 uppercase tracking-wider mb-3">Водитель ТС клиента</div>
+              <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+                {fmt("ФИО водителя", c.driverFullName)}
+                {fmt("Дата рождения", c.driverBirthDate ? new Date(c.driverBirthDate).toLocaleDateString("ru-RU") : "")}
+                {fmt("Место проживания", c.driverAddress)}
+                {fmt("Страховая компания", c.driverInsuranceCompany)}
+              </div>
+            </div>
+          )}
           {(c.guiltFullName || c.guiltVehicle || c.guiltInsuranceCompany) && (
             <div className="border-t border-border pt-5">
               <div className="text-xs font-semibold text-red-400 uppercase tracking-wider mb-3">Виновник ДТП</div>
