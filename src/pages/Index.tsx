@@ -273,34 +273,105 @@ const CasesSection = () => {
 };
 
 // ───────── Section: Clients ─────────
+const highlight = (text: string, query: string) => {
+  if (!query.trim()) return <>{text}</>;
+  const idx = text.toLowerCase().indexOf(query.toLowerCase());
+  if (idx === -1) return <>{text}</>;
+  return (
+    <>
+      {text.slice(0, idx)}
+      <mark className="bg-electric/30 text-electric rounded px-0.5">{text.slice(idx, idx + query.length)}</mark>
+      {text.slice(idx + query.length)}
+    </>
+  );
+};
+
 const ClientsSection = () => {
   const [search, setSearch] = useState("");
-  const filtered = CLIENTS.filter(c =>
-    c.name.toLowerCase().includes(search.toLowerCase()) ||
-    c.type.toLowerCase().includes(search.toLowerCase())
-  );
+  const [statusFilter, setStatusFilter] = useState("all");
+
+  const q = search.toLowerCase();
+  const filtered = CLIENTS.filter(c => {
+    const matchSearch = !q ||
+      c.name.toLowerCase().includes(q) ||
+      c.type.toLowerCase().includes(q) ||
+      c.phone.toLowerCase().includes(q) ||
+      c.email.toLowerCase().includes(q);
+    const matchStatus = statusFilter === "all" || c.status === statusFilter;
+    return matchSearch && matchStatus;
+  });
+
+  const statusFilters = [
+    { key: "all", label: "Все" },
+    { key: "active", label: "Активные" },
+    { key: "new", label: "Новые" },
+    { key: "closed", label: "Закрытые" },
+  ];
 
   return (
     <div className="space-y-4 animate-fade-in">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xl font-bold text-foreground">Справочник клиентов</h2>
-          <p className="text-sm text-muted-foreground">{CLIENTS.length} клиентов</p>
+          <p className="text-sm text-muted-foreground">
+            {filtered.length} из {CLIENTS.length} клиентов
+          </p>
         </div>
         <button className="flex items-center gap-2 px-4 py-2 bg-electric text-background rounded-lg text-sm font-medium hover:opacity-90 transition-opacity">
           <Icon name="UserPlus" size={16} />
           Добавить
         </button>
       </div>
-      <div className="relative">
-        <Icon name="Search" size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-        <input
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          placeholder="Поиск по имени или типу..."
-          className="w-full pl-9 pr-4 py-2.5 bg-surface-2 border border-border rounded-xl text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-electric transition-colors"
-        />
+
+      {/* Search + filters */}
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1">
+          <Icon name="Search" size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Имя, телефон, email, тип клиента..."
+            className="w-full pl-9 pr-9 py-2.5 bg-surface-2 border border-border rounded-xl text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-electric transition-colors"
+          />
+          {search && (
+            <button
+              onClick={() => setSearch("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <Icon name="X" size={14} />
+            </button>
+          )}
+        </div>
+        <div className="flex gap-2">
+          {statusFilters.map(f => (
+            <button
+              key={f.key}
+              onClick={() => setStatusFilter(f.key)}
+              className={`px-3 py-2 rounded-xl text-sm font-medium transition-all whitespace-nowrap ${statusFilter === f.key ? "bg-electric text-background" : "bg-surface-2 text-muted-foreground hover:text-foreground"}`}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
       </div>
+
+      {/* Empty state */}
+      {filtered.length === 0 && (
+        <div className="flex flex-col items-center justify-center py-16 text-center animate-fade-in">
+          <div className="w-14 h-14 rounded-2xl bg-surface-2 flex items-center justify-center mb-4">
+            <Icon name="SearchX" size={24} className="text-muted-foreground" />
+          </div>
+          <div className="text-foreground font-semibold mb-1">Клиенты не найдены</div>
+          <div className="text-sm text-muted-foreground">Попробуйте изменить запрос или сбросить фильтры</div>
+          <button
+            onClick={() => { setSearch(""); setStatusFilter("all"); }}
+            className="mt-4 px-4 py-2 bg-surface-2 rounded-xl text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            Сбросить фильтры
+          </button>
+        </div>
+      )}
+
       <div className="space-y-3">
         {filtered.map(client => (
           <div key={client.id} className="p-4 rounded-xl border border-border surface hover:border-electric/30 hover-scale cursor-pointer transition-colors">
@@ -310,10 +381,20 @@ const ClientsSection = () => {
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
-                  <h3 className="font-semibold text-foreground truncate">{client.name}</h3>
+                  <h3 className="font-semibold text-foreground truncate">{highlight(client.name, search)}</h3>
                   <StatusBadge status={client.status} />
                 </div>
-                <div className="text-sm text-muted-foreground">{client.type}</div>
+                <div className="text-sm text-muted-foreground">{highlight(client.type, search)}</div>
+                {search && (client.phone.toLowerCase().includes(q) || client.email.toLowerCase().includes(q)) && (
+                  <div className="flex gap-3 mt-1">
+                    {client.phone.toLowerCase().includes(q) && (
+                      <span className="text-xs text-muted-foreground">{highlight(client.phone, search)}</span>
+                    )}
+                    {client.email.toLowerCase().includes(q) && (
+                      <span className="text-xs text-muted-foreground">{highlight(client.email, search)}</span>
+                    )}
+                  </div>
+                )}
               </div>
               <div className="hidden lg:grid grid-cols-3 gap-6 text-right">
                 <div>
