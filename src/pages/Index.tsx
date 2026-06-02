@@ -4,7 +4,7 @@ import Icon from "@/components/ui/icon";
 type IconName = Parameters<typeof Icon>[0]["name"];
 
 // ───────── Types ─────────
-type Section = "dashboard" | "cases" | "clients" | "documents" | "tasks" | "calendar";
+type Section = "dashboard" | "cases" | "clients" | "documents" | "tasks" | "calendar" | "reviewed" | "payments";
 
 interface Client {
   id: number; name: string; phone: string; email: string; type: string;
@@ -28,6 +28,17 @@ interface CalEvent {
 }
 interface Notification {
   id: number; text: string; type: "urgent" | "warning" | "info"; time: string;
+}
+interface ReviewedCase {
+  id: number; title: string; client: string; category: string;
+  closedDate: string; result: "won" | "lost" | "settled" | "withdrawn";
+  court?: string; duration: string; amount?: string;
+}
+interface Payment {
+  id: number; client: string; case: string; amount: number;
+  date: string; status: "paid" | "pending" | "overdue" | "partial";
+  type: "retainer" | "hourly" | "success_fee" | "consultation";
+  comment?: string;
 }
 
 // ───────── Mock Data ─────────
@@ -77,6 +88,23 @@ const NOTIFICATIONS: Notification[] = [
   { id: 2, text: "Дедлайн по ходатайству — завтра в 18:00", type: "urgent", time: "1ч назад" },
   { id: 3, text: "Петров А.Н. ожидает ответа по делу", type: "warning", time: "3ч назад" },
   { id: 4, text: "Документ «Due Diligence» отправлен на проверку", type: "info", time: "Вчера" },
+];
+
+const REVIEWED_CASES: ReviewedCase[] = [
+  { id: 1, title: "Признание сделки недействительной", client: "Козлов Виктор Павлович", category: "Гражданское право", closedDate: "15.04.2026", result: "won", court: "Тверской районный суд", duration: "8 мес.", amount: "2 400 000 ₽" },
+  { id: 2, title: "Взыскание неустойки по договору подряда", client: "ООО «Альфа Строй»", category: "Корпоративное право", closedDate: "02.03.2026", result: "settled", court: "Арбитражный суд г. Москвы", duration: "5 мес.", amount: "850 000 ₽" },
+  { id: 3, title: "Оспаривание штрафа налоговой", client: "АО «ТехноПром»", category: "Налоговое право", closedDate: "20.01.2026", result: "won", court: "9-й ААС", duration: "3 мес.", amount: "1 100 000 ₽" },
+  { id: 4, title: "Раздел имущества супругов", client: "Петров Андрей Николаевич", category: "Семейное право", closedDate: "10.12.2025", result: "lost", court: "Хамовнический суд", duration: "11 мес." },
+  { id: 5, title: "Защита деловой репутации", client: "ИП Сидорова Мария", category: "Гражданское право", closedDate: "05.11.2025", result: "withdrawn", court: "Мещанский суд", duration: "2 мес." },
+];
+
+const PAYMENTS: Payment[] = [
+  { id: 1, client: "АО «ТехноПром»", case: "Сопровождение M&A сделки", amount: 350000, date: "01.06.2026", status: "paid", type: "retainer", comment: "Аванс по договору" },
+  { id: 2, client: "ООО «Альфа Строй»", case: "Корпоративный спор", amount: 120000, date: "28.05.2026", status: "overdue", type: "hourly", comment: "За май 2026" },
+  { id: 3, client: "ИП Сидорова Мария", case: "Регистрация товарного знака", amount: 45000, date: "25.05.2026", status: "paid", type: "consultation" },
+  { id: 4, client: "Петров Андрей Николаевич", case: "Трудовой спор", amount: 80000, date: "20.06.2026", status: "pending", type: "retainer", comment: "2-й транш" },
+  { id: 5, client: "АО «ТехноПром»", case: "Взыскание задолженности", amount: 200000, date: "15.06.2026", status: "partial", type: "success_fee", comment: "Оплачено 100 000 ₽" },
+  { id: 6, client: "Козлов Виктор Павлович", case: "Признание сделки", amount: 180000, date: "20.04.2026", status: "paid", type: "success_fee", comment: "Гонорар успеха" },
 ];
 
 // ───────── Helper Components ─────────
@@ -653,6 +681,251 @@ const CalendarSection = () => {
   );
 };
 
+// ───────── Section: Reviewed ─────────
+const ReviewedSection = () => {
+  const [filter, setFilter] = useState("all");
+  const resultMap: Record<string, { label: string; cls: string; icon: string }> = {
+    won:       { label: "Выиграно",   cls: "badge-active",  icon: "Trophy" },
+    lost:      { label: "Проиграно", cls: "badge-urgent",  icon: "XCircle" },
+    settled:   { label: "Мировое",   cls: "badge-info",    icon: "Handshake" },
+    withdrawn: { label: "Отозвано",  cls: "badge-pending", icon: "RotateCcw" },
+  };
+  const filters = [
+    { key: "all", label: "Все" },
+    { key: "won", label: "Выиграно" },
+    { key: "settled", label: "Мировое" },
+    { key: "lost", label: "Проиграно" },
+    { key: "withdrawn", label: "Отозвано" },
+  ];
+  const filtered = filter === "all" ? REVIEWED_CASES : REVIEWED_CASES.filter(c => c.result === filter);
+  const wonCount = REVIEWED_CASES.filter(c => c.result === "won").length;
+  const totalAmount = REVIEWED_CASES.filter(c => c.amount).reduce((acc, c) => {
+    const num = parseInt((c.amount || "0").replace(/\D/g, ""));
+    return acc + num;
+  }, 0);
+
+  return (
+    <div className="space-y-4 animate-fade-in">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-bold text-foreground">Рассмотренные дела</h2>
+          <p className="text-sm text-muted-foreground">{REVIEWED_CASES.length} завершённых дел</p>
+        </div>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-3 gap-3">
+        <div className="p-4 rounded-xl border border-border surface text-center">
+          <div className="text-2xl font-bold text-green-400">{wonCount}</div>
+          <div className="text-xs text-muted-foreground mt-1">Выиграно</div>
+        </div>
+        <div className="p-4 rounded-xl border border-border surface text-center">
+          <div className="text-2xl font-bold text-electric">
+            {Math.round((wonCount / REVIEWED_CASES.length) * 100)}%
+          </div>
+          <div className="text-xs text-muted-foreground mt-1">Успешность</div>
+        </div>
+        <div className="p-4 rounded-xl border border-border surface text-center">
+          <div className="text-2xl font-bold text-foreground">
+            {(totalAmount / 1000000).toFixed(1)}М
+          </div>
+          <div className="text-xs text-muted-foreground mt-1">Взыскано, ₽</div>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className="flex gap-2 flex-wrap">
+        {filters.map(f => (
+          <button
+            key={f.key}
+            onClick={() => setFilter(f.key)}
+            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${filter === f.key ? "bg-electric text-background" : "bg-surface-2 text-muted-foreground hover:text-foreground"}`}
+          >
+            {f.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="space-y-3">
+        {filtered.map(c => {
+          const res = resultMap[c.result];
+          return (
+            <div key={c.id} className="p-4 rounded-xl border border-border surface hover:border-electric/30 hover-scale cursor-pointer transition-colors">
+              <div className="flex items-start justify-between gap-3 mb-3">
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                    c.result === "won" ? "bg-green-400/10" :
+                    c.result === "lost" ? "bg-red-500/10" :
+                    c.result === "settled" ? "bg-blue-400/10" : "bg-yellow-400/10"
+                  }`}>
+                    <Icon name={res.icon as IconName} size={15} className={
+                      c.result === "won" ? "text-green-400" :
+                      c.result === "lost" ? "text-red-400" :
+                      c.result === "settled" ? "text-blue-400" : "text-yellow-400"
+                    } />
+                  </div>
+                  <h3 className="font-semibold text-foreground truncate">{c.title}</h3>
+                </div>
+                <span className={`text-xs px-2 py-0.5 rounded-full font-medium shrink-0 ${res.cls}`}>{res.label}</span>
+              </div>
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+                <div>
+                  <div className="text-xs text-muted-foreground mb-0.5">Клиент</div>
+                  <div className="text-sm text-foreground font-medium">{c.client}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-muted-foreground mb-0.5">Категория</div>
+                  <div className="text-sm text-foreground">{c.category}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-muted-foreground mb-0.5">Закрыто</div>
+                  <div className="text-sm text-foreground">{c.closedDate} · {c.duration}</div>
+                </div>
+                {c.amount && (
+                  <div>
+                    <div className="text-xs text-muted-foreground mb-0.5">Взыскано</div>
+                    <div className="text-sm font-bold text-green-400">{c.amount}</div>
+                  </div>
+                )}
+              </div>
+              {c.court && (
+                <div className="mt-2 text-xs text-muted-foreground flex items-center gap-1">
+                  <Icon name="Landmark" size={11} />
+                  {c.court}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+// ───────── Section: Payments ─────────
+const PaymentsSection = () => {
+  const [filter, setFilter] = useState("all");
+
+  const statusMap: Record<string, { label: string; cls: string }> = {
+    paid:     { label: "Оплачено",   cls: "badge-active" },
+    pending:  { label: "Ожидание",   cls: "badge-pending" },
+    overdue:  { label: "Просрочено", cls: "badge-urgent" },
+    partial:  { label: "Частично",   cls: "badge-info" },
+  };
+  const typeMap: Record<string, string> = {
+    retainer:     "Аванс/ретейнер",
+    hourly:       "Почасовая оплата",
+    success_fee:  "Гонорар успеха",
+    consultation: "Консультация",
+  };
+
+  const filters = [
+    { key: "all", label: "Все" },
+    { key: "paid", label: "Оплачено" },
+    { key: "pending", label: "Ожидание" },
+    { key: "overdue", label: "Просрочено" },
+    { key: "partial", label: "Частично" },
+  ];
+
+  const filtered = filter === "all" ? PAYMENTS : PAYMENTS.filter(p => p.status === filter);
+  const totalPaid = PAYMENTS.filter(p => p.status === "paid").reduce((a, p) => a + p.amount, 0);
+  const totalPending = PAYMENTS.filter(p => p.status === "pending" || p.status === "overdue").reduce((a, p) => a + p.amount, 0);
+  const totalOverdue = PAYMENTS.filter(p => p.status === "overdue").reduce((a, p) => a + p.amount, 0);
+
+  const fmt = (n: number) => n.toLocaleString("ru-RU") + " ₽";
+
+  return (
+    <div className="space-y-4 animate-fade-in">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-bold text-foreground">Выплаты и гонорары</h2>
+          <p className="text-sm text-muted-foreground">{PAYMENTS.length} платежей</p>
+        </div>
+        <button className="flex items-center gap-2 px-4 py-2 bg-electric text-background rounded-lg text-sm font-medium hover:opacity-90 transition-opacity">
+          <Icon name="Plus" size={16} />
+          Добавить
+        </button>
+      </div>
+
+      {/* Finance summary */}
+      <div className="grid grid-cols-3 gap-3">
+        <div className="p-4 rounded-xl border border-green-500/20 bg-green-500/5">
+          <div className="flex items-center gap-2 mb-2">
+            <Icon name="TrendingUp" size={15} className="text-green-400" />
+            <span className="text-xs text-muted-foreground">Получено</span>
+          </div>
+          <div className="text-xl font-bold text-green-400">{fmt(totalPaid)}</div>
+        </div>
+        <div className="p-4 rounded-xl border border-yellow-500/20 bg-yellow-500/5">
+          <div className="flex items-center gap-2 mb-2">
+            <Icon name="Clock" size={15} className="text-yellow-400" />
+            <span className="text-xs text-muted-foreground">Ожидается</span>
+          </div>
+          <div className="text-xl font-bold text-yellow-400">{fmt(totalPending)}</div>
+        </div>
+        <div className="p-4 rounded-xl border border-red-500/20 bg-red-500/5">
+          <div className="flex items-center gap-2 mb-2">
+            <Icon name="AlertCircle" size={15} className="text-red-400" />
+            <span className="text-xs text-muted-foreground">Просрочено</span>
+          </div>
+          <div className="text-xl font-bold text-red-400">{fmt(totalOverdue)}</div>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className="flex gap-2 flex-wrap">
+        {filters.map(f => (
+          <button
+            key={f.key}
+            onClick={() => setFilter(f.key)}
+            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${filter === f.key ? "bg-electric text-background" : "bg-surface-2 text-muted-foreground hover:text-foreground"}`}
+          >
+            {f.label}
+          </button>
+        ))}
+      </div>
+
+      {/* List */}
+      <div className="space-y-2">
+        {filtered.map(p => (
+          <div key={p.id} className="flex items-center gap-4 p-4 rounded-xl border border-border surface hover:border-electric/30 hover-scale cursor-pointer transition-colors">
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+              p.status === "paid" ? "bg-green-400/10" :
+              p.status === "overdue" ? "bg-red-500/10" :
+              p.status === "partial" ? "bg-blue-400/10" : "bg-yellow-400/10"
+            }`}>
+              <Icon name="Wallet" size={18} className={
+                p.status === "paid" ? "text-green-400" :
+                p.status === "overdue" ? "text-red-400" :
+                p.status === "partial" ? "text-blue-400" : "text-yellow-400"
+              } />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-0.5 flex-wrap">
+                <span className="font-semibold text-foreground">{p.client}</span>
+                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusMap[p.status].cls}`}>
+                  {statusMap[p.status].label}
+                </span>
+              </div>
+              <div className="text-xs text-muted-foreground">{p.case}</div>
+              <div className="text-xs text-muted-foreground mt-0.5">{typeMap[p.type]}{p.comment ? ` · ${p.comment}` : ""}</div>
+            </div>
+            <div className="text-right shrink-0">
+              <div className={`text-base font-bold ${
+                p.status === "paid" ? "text-green-400" :
+                p.status === "overdue" ? "text-red-400" : "text-foreground"
+              }`}>
+                {fmt(p.amount)}
+              </div>
+              <div className="text-xs text-muted-foreground mt-0.5">{p.date}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 // ───────── Main App ─────────
 export default function Index() {
   const [section, setSection] = useState<Section>("dashboard");
@@ -665,6 +938,8 @@ export default function Index() {
     { key: "documents" as Section, icon: "FolderOpen", label: "Документы" },
     { key: "tasks" as Section, icon: "CheckSquare", label: "Задачи" },
     { key: "calendar" as Section, icon: "Calendar", label: "Календарь" },
+    { key: "reviewed" as Section, icon: "Archive", label: "Рассмотренные" },
+    { key: "payments" as Section, icon: "Wallet", label: "Выплаты" },
   ];
 
   const urgentCount = NOTIFICATIONS.filter(n => n.type === "urgent").length;
@@ -677,6 +952,8 @@ export default function Index() {
       case "documents": return <DocumentsSection />;
       case "tasks": return <TasksSection />;
       case "calendar": return <CalendarSection />;
+      case "reviewed": return <ReviewedSection />;
+      case "payments": return <PaymentsSection />;
     }
   };
 
@@ -713,6 +990,11 @@ export default function Index() {
               {item.key === "calendar" && (
                 <span className="ml-auto text-xs bg-electric/15 text-electric px-1.5 py-0.5 rounded-md">
                   {EVENTS.filter(e => e.type === "court").length}
+                </span>
+              )}
+              {item.key === "payments" && PAYMENTS.filter(p => p.status === "overdue").length > 0 && (
+                <span className="ml-auto text-xs bg-red-500/15 text-red-400 px-1.5 py-0.5 rounded-md">
+                  {PAYMENTS.filter(p => p.status === "overdue").length}
                 </span>
               )}
             </button>
