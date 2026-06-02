@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import Icon from "@/components/ui/icon";
 
 type IconName = Parameters<typeof Icon>[0]["name"];
@@ -25,10 +25,12 @@ interface Case {
   policyNumber: string; insuranceCompany: string;
   // Водитель ТС клиента
   driverFullName: string; driverBirthDate: string; driverAddress: string; driverInsuranceCompany: string;
+  // ДТП
+  dtpDate: string; dtpPlace: string;
   // Виновник ДТП
-  guiltFullName: string; guiltBirthDate: string; guiltAddress: string;
+  guiltFullName: string; guiltBirthDate: string; guiltAddress: string; guiltPhone: string;
   guiltOwnerName: string; guiltOwnerAddress: string;
-  guiltVehicle: string; guiltVehiclePlate: string; guiltInsuranceCompany: string;
+  guiltVehicle: string; guiltVehiclePlate: string; guiltInsuranceCompany: string; guiltPolicyNumber: string;
 }
 interface Document {
   id: number; title: string; case: string; type: string; version: number;
@@ -248,13 +250,101 @@ const emptyForm = {
   court: "", deadline: "", priority: "medium" as "high" | "medium" | "low",
   // Водитель ТС клиента
   driverFullName: "", driverBirthDate: "", driverAddress: "", driverInsuranceCompany: "",
+  // ДТП
+  dtpDate: "", dtpPlace: "",
   // Виновник
-  guiltFullName: "", guiltBirthDate: "", guiltAddress: "",
+  guiltFullName: "", guiltBirthDate: "", guiltAddress: "", guiltPhone: "",
   guiltOwnerName: "", guiltOwnerAddress: "",
-  guiltVehicle: "", guiltVehiclePlate: "", guiltInsuranceCompany: "",
+  guiltVehicle: "", guiltVehiclePlate: "", guiltInsuranceCompany: "", guiltPolicyNumber: "",
 };
 
 const inputCls = "w-full px-3 py-2.5 bg-surface-2 border border-border rounded-xl text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-electric transition-colors";
+
+const INSURANCE_COMPANIES = [
+  "ПАО СК \"РОСГОССТРАХ\"",
+  "ООО СК \"СБЕРБАНК СТРАХОВАНИЕ\"",
+  "ПАО \"ГРУППА РЕНЕССАНС СТРАХОВАНИЕ\"",
+  "САО «ВСК»",
+  "ООО \"СК \"СОГЛАСИЕ\"",
+  "СПАО \"ИНГОССТРАХ\"",
+  "АО \"СОГАЗ\"",
+  "АО \"АЛЬФАСТРАХОВАНИЕ\"",
+  "САО \"РЕСО-ГАРАНТИЯ\"",
+  "АО \"Т-СТРАХОВАНИЕ\"",
+  "ПАО \"САК \"ЭНЕРГОГАРАНТ\"",
+  "АО \"МАКС\"",
+  "ООО \"АБСОЛЮТ СТРАХОВАНИЕ\"",
+  "АО \"СК \"АСТРО-ВОЛГА\"",
+  "Ответственность не застрахована",
+  "МКУ \"СЛУЖБА АВТОМОБИЛЬНЫХ ДОРОГ\"",
+  "Российский союз автостраховщиков",
+  "ООО \"ПРОМИНСТРАХ\"",
+  "ООО \"СФ \"АДОНИС\"",
+  "ООО Страховая Компания \"Гелиос\"",
+  "АО \"СК ГАЙДЕ\"",
+  "АО \"ОСК\"",
+  "ОАО \"СК \"РЕГИОНГАРАНТ\"",
+  "ООО \"ЮЖУРАЛ-АСКО\"",
+  "АО \"СК \"ПАРИ\"",
+  "ОАО СК \"ЭНИ\"",
+  "САО \"НАДЕЖДА\"",
+  "ООО РСО \"ЕВРОИНС\"",
+  "ООО СК \"ПАРИТЕТ - СК\"",
+  "АО СГ \"СПАССКИЕ ВОРОТА\"",
+  "ОАО СК \"БАСК\"",
+  "АО \"БОРОВИЦКОЕ СТРАХОВОЕ ОБЩЕСТВО\"",
+  "АО СК \"ЧУЛПАН\"",
+  "Администрация Петропавловск-Камчатского городского округа",
+  "АО \"ГСК \"ЮГОРИЯ\"",
+];
+
+const InsuranceSelect = ({ value, onChange, placeholder = "Выбрать страховую..." }: {
+  value: string; onChange: (v: string) => void; placeholder?: string;
+}) => {
+  const [search, setSearch] = useState("");
+  const [open, setOpen] = useState(false);
+  const ref = React.useRef<HTMLDivElement>(null);
+
+  const filtered = INSURANCE_COMPANIES.filter(c => c.toLowerCase().includes(search.toLowerCase()));
+
+  React.useEffect(() => {
+    const handler = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  return (
+    <div ref={ref} className="relative">
+      <div className={`${inputCls} flex items-center gap-2 cursor-pointer`} onClick={() => setOpen(o => !o)}>
+        <span className={value ? "text-foreground flex-1 truncate" : "text-muted-foreground flex-1"}>{value || placeholder}</span>
+        {value && <button onClick={e => { e.stopPropagation(); onChange(""); setSearch(""); }} className="text-muted-foreground hover:text-foreground shrink-0"><Icon name="X" size={13} /></button>}
+        <Icon name={open ? "ChevronUp" : "ChevronDown"} size={14} className="text-muted-foreground shrink-0" />
+      </div>
+      {open && (
+        <div className="absolute z-50 top-full mt-1 w-full bg-surface border border-border rounded-xl shadow-xl overflow-hidden">
+          <div className="p-2 border-b border-border">
+            <div className="relative">
+              <Icon name="Search" size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <input autoFocus value={search} onChange={e => setSearch(e.target.value)}
+                placeholder="Поиск..." className="w-full pl-7 pr-3 py-1.5 bg-surface-2 rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none" />
+            </div>
+          </div>
+          <div className="max-h-52 overflow-y-auto">
+            {filtered.length === 0
+              ? <div className="px-3 py-2.5 text-sm text-muted-foreground">Не найдено</div>
+              : filtered.map(c => (
+                <button key={c} onClick={() => { onChange(c); setSearch(""); setOpen(false); }}
+                  className={`w-full text-left px-3 py-2 text-sm transition-colors hover:bg-surface-2 ${value === c ? "text-electric font-medium" : "text-foreground"}`}>
+                  {c}
+                </button>
+              ))
+            }
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
 const NewCaseModal = ({ onClose, onSave }: { onClose: () => void; onSave: (c: Case) => void }) => {
   const [form, setForm] = useState(emptyForm);
@@ -328,6 +418,19 @@ const NewCaseModal = ({ onClose, onSave }: { onClose: () => void; onSave: (c: Ca
             )}
           </div>
           <div className="border-t border-border pt-4">
+            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">ДТП</div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs text-muted-foreground mb-1.5 block">Дата ДТП</label>
+                <input type="date" value={form.dtpDate} onChange={set("dtpDate")} className={inputCls} />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1.5 block">Место ДТП</label>
+                <input value={form.dtpPlace} onChange={set("dtpPlace")} placeholder="г. Москва, ул. Ленина" className={inputCls} />
+              </div>
+            </div>
+          </div>
+          <div className="border-t border-border pt-4">
             <label className="text-xs text-muted-foreground mb-1.5 block">ФИО клиента <span className="text-red-400">*</span></label>
             <input value={form.fullName} onChange={set("fullName")} placeholder="Иванов Иван Иванович" className={inputCls} />
           </div>
@@ -356,7 +459,7 @@ const NewCaseModal = ({ onClose, onSave }: { onClose: () => void; onSave: (c: Ca
               </div>
               <div>
                 <label className="text-xs text-muted-foreground mb-1.5 block">Страховая компания</label>
-                <input value={form.driverInsuranceCompany} onChange={set("driverInsuranceCompany")} placeholder="СОГАЗ, Росгосстрах..." className={inputCls} />
+                <InsuranceSelect value={form.driverInsuranceCompany} onChange={v => setForm(f => ({ ...f, driverInsuranceCompany: v }))} />
               </div>
               <div>
                 <label className="text-xs text-muted-foreground mb-1.5 block">Номер полиса</label>
@@ -410,6 +513,10 @@ const NewCaseModal = ({ onClose, onSave }: { onClose: () => void; onSave: (c: Ca
             <label className="text-xs text-muted-foreground mb-1.5 block">Адрес проживания</label>
             <input value={form.guiltAddress} onChange={set("guiltAddress")} placeholder="г. Москва, ул. Примерная, д. 5" className={inputCls} />
           </div>
+          <div>
+            <label className="text-xs text-muted-foreground mb-1.5 block">Телефон виновника</label>
+            <input value={form.guiltPhone} onChange={set("guiltPhone")} placeholder="+7 999 000-00-00" className={inputCls} />
+          </div>
           <div className="border-t border-border pt-4">
             <label className="text-xs text-muted-foreground mb-1.5 block">Собственник ТС (если отличается от виновника)</label>
             <input value={form.guiltOwnerName} onChange={set("guiltOwnerName")} placeholder="ФИО или наименование организации" className={inputCls} />
@@ -428,7 +535,11 @@ const NewCaseModal = ({ onClose, onSave }: { onClose: () => void; onSave: (c: Ca
           </div>
           <div>
             <label className="text-xs text-muted-foreground mb-1.5 block">Страховая компания виновника</label>
-            <input value={form.guiltInsuranceCompany} onChange={set("guiltInsuranceCompany")} placeholder="Альфастрахование, РЕСО..." className={inputCls} />
+            <InsuranceSelect value={form.guiltInsuranceCompany} onChange={v => setForm(f => ({ ...f, guiltInsuranceCompany: v }))} />
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground mb-1.5 block">Номер полиса виновника</label>
+            <input value={form.guiltPolicyNumber} onChange={set("guiltPolicyNumber")} placeholder="ЕЕЕ 9876543210" className={inputCls} />
           </div>
         </div>
       ),
@@ -494,10 +605,12 @@ const NewCaseModal = ({ onClose, onSave }: { onClose: () => void; onSave: (c: Ca
       policyNumber: form.policyNumber, insuranceCompany: form.insuranceCompany,
       driverFullName: form.driverFullName, driverBirthDate: form.driverBirthDate,
       driverAddress: form.driverAddress, driverInsuranceCompany: form.driverInsuranceCompany,
-      guiltFullName: form.guiltFullName, guiltBirthDate: form.guiltBirthDate, guiltAddress: form.guiltAddress,
+      dtpDate: form.dtpDate, dtpPlace: form.dtpPlace,
+      guiltFullName: form.guiltFullName, guiltBirthDate: form.guiltBirthDate,
+      guiltAddress: form.guiltAddress, guiltPhone: form.guiltPhone,
       guiltOwnerName: form.guiltOwnerName, guiltOwnerAddress: form.guiltOwnerAddress,
       guiltVehicle: form.guiltVehicle, guiltVehiclePlate: form.guiltVehiclePlate,
-      guiltInsuranceCompany: form.guiltInsuranceCompany,
+      guiltInsuranceCompany: form.guiltInsuranceCompany, guiltPolicyNumber: form.guiltPolicyNumber,
     });
   };
 
@@ -586,8 +699,9 @@ const generateStatement = (c: Case): string => {
   const ownerAddr = c.guiltOwnerAddress || c.guiltAddress || "________________";
 
   const driverBd = c.driverBirthDate ? new Date(c.driverBirthDate).toLocaleDateString("ru-RU") : "________";
+  const dtpDate = c.dtpDate ? new Date(c.dtpDate).toLocaleDateString("ru-RU") : "________";
   const driverBlock = c.driverFullName
-    ? `\nВодитель транспортного средства истца: ${c.driverFullName}, дата рождения: ${driverBd} г.,\nадрес: ${c.driverAddress || "________________"}, страховая компания: ${c.driverInsuranceCompany || "________________"}.\n`
+    ? `\nВодитель транспортного средства истца: ${c.driverFullName}, дата рождения: ${driverBd} г.,\nадрес: ${c.driverAddress || "________________"}, страховая компания: ${c.driverInsuranceCompany || "________________"}, полис № ${c.policyNumber || "________________"}.\n`
     : "";
 
   return `В ${court}
@@ -606,14 +720,15 @@ ${driverBlock}
 
 Транспортное средство застраховано по полису ОСАГО № ${c.policyNumber || "________________"}, страховая компания: ${c.insuranceCompany || "________________"}.
 
-В результате дорожно-транспортного происшествия виновником которого является:
+«${dtpDate}» в ${c.dtpPlace || "________________"} произошло дорожно-транспортное происшествие с участием моего транспортного средства. Виновником ДТП является:
 — ${c.guiltFullName || "________________"}, дата рождения: ${gbd} г.,
-  адрес проживания: ${c.guiltAddress || "________________"};
+  адрес проживания: ${c.guiltAddress || "________________"}${c.guiltPhone ? `, тел.: ${c.guiltPhone}` : ""};
 — транспортное средство виновника: ${c.guiltVehicle || "________________"},
   государственный регистрационный знак: ${c.guiltVehiclePlate || "________________"};
 — собственник транспортного средства: ${owner},
   адрес: ${ownerAddr};
-— страховая компания виновника: ${c.guiltInsuranceCompany || "________________"}.
+— страховая компания виновника: ${c.guiltInsuranceCompany || "________________"},
+  полис ОСАГО № ${c.guiltPolicyNumber || "________________"}.
 
 Мне был причинён имущественный ущерб. Страховая компания ответчика отказывается возмещать ущерб в добровольном порядке либо произвела выплату не в полном объёме.
 
@@ -674,6 +789,19 @@ const CaseCard = ({ c }: { c: Case }) => {
 
       {tab === "data" && (
         <div className="p-4 space-y-5">
+          {(c.dtpDate || c.dtpPlace) && (
+            <div className="flex gap-4 p-3 rounded-xl bg-surface-2 border border-border">
+              <div className="flex items-center gap-2 text-sm">
+                <Icon name="MapPin" size={14} className="text-electric shrink-0" />
+                <span className="text-muted-foreground">ДТП:</span>
+                <span className="text-foreground font-medium">
+                  {c.dtpDate ? new Date(c.dtpDate).toLocaleDateString("ru-RU") : ""}
+                  {c.dtpDate && c.dtpPlace ? " · " : ""}
+                  {c.dtpPlace}
+                </span>
+              </div>
+            </div>
+          )}
           <div>
             <div className="text-xs font-semibold text-electric uppercase tracking-wider mb-3">Истец</div>
             <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
@@ -709,11 +837,13 @@ const CaseCard = ({ c }: { c: Case }) => {
                 {fmt("ФИО виновника", c.guiltFullName)}
                 {fmt("Дата рождения", c.guiltBirthDate ? new Date(c.guiltBirthDate).toLocaleDateString("ru-RU") : "")}
                 {fmt("Адрес виновника", c.guiltAddress)}
+                {fmt("Телефон", c.guiltPhone)}
                 {fmt("Собственник ТС", c.guiltOwnerName)}
                 {fmt("Адрес собственника", c.guiltOwnerAddress)}
                 {fmt("ТС виновника", c.guiltVehicle)}
                 {fmt("Гос. номер ТС виновника", c.guiltVehiclePlate)}
                 {fmt("Страховая компания виновника", c.guiltInsuranceCompany)}
+                {fmt("Полис виновника", c.guiltPolicyNumber)}
               </div>
             </div>
           )}
