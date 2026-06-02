@@ -687,12 +687,8 @@ const CalendarSection = () => {
 };
 
 const SYSTEM_USERS: SystemUser[] = [
-  { id: 1, name: "Алексей Правдин", email: "pravdin@lexoffice.ru", role: "admin", status: "active", lastLogin: "Сегодня, 09:15", cases: 12, avatar: "А" },
-  { id: 2, name: "Елена Соколова", email: "sokolova@lexoffice.ru", role: "lawyer", status: "active", lastLogin: "Сегодня, 08:40", cases: 7, avatar: "Е" },
-  { id: 3, name: "Игорь Громов", email: "gromov@lexoffice.ru", role: "lawyer", status: "active", lastLogin: "Вчера, 18:22", cases: 5, avatar: "И" },
-  { id: 4, name: "Мария Власова", email: "vlasova@lexoffice.ru", role: "assistant", status: "active", lastLogin: "Вчера, 17:05", cases: 0, avatar: "М" },
-  { id: 5, name: "Дмитрий Кузин", email: "kuzin@lexoffice.ru", role: "readonly", status: "inactive", lastLogin: "15.05.2026", cases: 0, avatar: "Д" },
-  { id: 6, name: "Ольга Тихонова", email: "tikhonova@lexoffice.ru", role: "lawyer", status: "blocked", lastLogin: "01.04.2026", cases: 2, avatar: "О" },
+  { id: 1, name: "Ледюкова Диана", email: "ledyukova@lexoffice.ru", role: "admin", status: "active", lastLogin: "Сегодня, 09:15", cases: 0, avatar: "Д" },
+  { id: 2, name: "Сапрыкина Людмила", email: "saprykina@lexoffice.ru", role: "lawyer", status: "active", lastLogin: "Сегодня, 08:40", cases: 0, avatar: "Л" },
 ];
 
 // ───────── Section: Users ─────────
