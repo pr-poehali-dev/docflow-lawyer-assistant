@@ -234,6 +234,7 @@ const Dashboard = ({ onSection }: { onSection: (s: Section) => void }) => {
 
 // ───────── New Case Form ─────────
 const emptyForm = {
+  clientId: "" as string,
   fullName: "", birthDate: "", address: "",
   passportSeries: "", passportNumber: "", passportIssued: "", passportDate: "",
   vehicle: "", vehiclePlate: "",
@@ -241,115 +242,153 @@ const emptyForm = {
   court: "", deadline: "", priority: "medium" as "high" | "medium" | "low",
 };
 
+const inputCls = "w-full px-3 py-2.5 bg-surface-2 border border-border rounded-xl text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-electric transition-colors";
+
 const NewCaseModal = ({ onClose, onSave }: { onClose: () => void; onSave: (c: Case) => void }) => {
   const [form, setForm] = useState(emptyForm);
   const [step, setStep] = useState(0);
+  const [clientSearch, setClientSearch] = useState("");
 
-  const set = (k: keyof typeof emptyForm) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
+  const set = (k: keyof typeof emptyForm) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
     setForm(f => ({ ...f, [k]: e.target.value }));
+
+  const filteredClients = CLIENTS.filter(c =>
+    c.name.toLowerCase().includes(clientSearch.toLowerCase()) && c.status !== "closed"
+  );
+
+  const selectClient = (client: Client) => {
+    setForm(f => ({ ...f, clientId: String(client.id), fullName: f.fullName || client.name }));
+    setClientSearch(client.name);
+  };
+
+  const selectedClient = CLIENTS.find(c => String(c.id) === form.clientId);
 
   const steps = [
     {
-      title: "Личные данные",
-      icon: "User",
+      title: "Клиент",
+      icon: "Users",
       fields: (
         <div className="space-y-4">
           <div>
-            <label className="text-xs text-muted-foreground mb-1.5 block">ФИО <span className="text-red-400">*</span></label>
-            <input value={form.fullName} onChange={set("fullName")} placeholder="Иванов Иван Иванович"
-              className="w-full px-3 py-2.5 bg-surface-2 border border-border rounded-xl text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-electric transition-colors" />
+            <label className="text-xs text-muted-foreground mb-1.5 block">Выбрать из справочника</label>
+            <div className="relative">
+              <Icon name="Search" size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <input
+                value={clientSearch}
+                onChange={e => { setClientSearch(e.target.value); setForm(f => ({ ...f, clientId: "" })); }}
+                placeholder="Поиск клиента..."
+                className={`${inputCls} pl-8`}
+              />
+            </div>
+            {clientSearch && !form.clientId && (
+              <div className="mt-1 border border-border rounded-xl overflow-hidden bg-surface-2">
+                {filteredClients.length === 0
+                  ? <div className="p-3 text-sm text-muted-foreground">Клиент не найден</div>
+                  : filteredClients.map(c => (
+                    <button key={c.id} onClick={() => selectClient(c)}
+                      className="w-full flex items-center gap-3 p-3 hover:bg-surface-3 transition-colors text-left border-b border-border/50 last:border-0">
+                      <div className="w-8 h-8 rounded-lg bg-electric/10 flex items-center justify-center shrink-0">
+                        <span className="text-electric font-bold text-sm">{c.name[0]}</span>
+                      </div>
+                      <div>
+                        <div className="text-sm font-medium text-foreground">{c.name}</div>
+                        <div className="text-xs text-muted-foreground">{c.type} · {c.phone}</div>
+                      </div>
+                    </button>
+                  ))
+                }
+              </div>
+            )}
+            {selectedClient && (
+              <div className="mt-2 flex items-center gap-3 p-3 rounded-xl border border-electric/30 bg-electric/5">
+                <div className="w-9 h-9 rounded-xl bg-electric/10 flex items-center justify-center shrink-0">
+                  <span className="text-electric font-bold">{selectedClient.name[0]}</span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-semibold text-foreground">{selectedClient.name}</div>
+                  <div className="text-xs text-muted-foreground">{selectedClient.phone} · {selectedClient.email}</div>
+                </div>
+                <button onClick={() => { setForm(f => ({ ...f, clientId: "" })); setClientSearch(""); }}
+                  className="text-muted-foreground hover:text-foreground">
+                  <Icon name="X" size={14} />
+                </button>
+              </div>
+            )}
+          </div>
+          <div className="border-t border-border pt-4">
+            <label className="text-xs text-muted-foreground mb-1.5 block">ФИО клиента <span className="text-red-400">*</span></label>
+            <input value={form.fullName} onChange={set("fullName")} placeholder="Иванов Иван Иванович" className={inputCls} />
           </div>
           <div>
             <label className="text-xs text-muted-foreground mb-1.5 block">Дата рождения</label>
-            <input type="date" value={form.birthDate} onChange={set("birthDate")}
-              className="w-full px-3 py-2.5 bg-surface-2 border border-border rounded-xl text-sm text-foreground focus:outline-none focus:border-electric transition-colors" />
+            <input type="date" value={form.birthDate} onChange={set("birthDate")} className={inputCls} />
           </div>
           <div>
             <label className="text-xs text-muted-foreground mb-1.5 block">Адрес проживания</label>
-            <input value={form.address} onChange={set("address")} placeholder="г. Москва, ул. Ленина, д. 1, кв. 1"
-              className="w-full px-3 py-2.5 bg-surface-2 border border-border rounded-xl text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-electric transition-colors" />
+            <input value={form.address} onChange={set("address")} placeholder="г. Москва, ул. Ленина, д. 1, кв. 1" className={inputCls} />
           </div>
         </div>
       ),
     },
     {
-      title: "Паспортные данные",
+      title: "Паспорт",
       icon: "CreditCard",
       fields: (
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-xs text-muted-foreground mb-1.5 block">Серия</label>
-              <input value={form.passportSeries} onChange={set("passportSeries")} placeholder="1234"
-                className="w-full px-3 py-2.5 bg-surface-2 border border-border rounded-xl text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-electric transition-colors" />
+              <input value={form.passportSeries} onChange={set("passportSeries")} placeholder="1234" className={inputCls} />
             </div>
             <div>
               <label className="text-xs text-muted-foreground mb-1.5 block">Номер</label>
-              <input value={form.passportNumber} onChange={set("passportNumber")} placeholder="567890"
-                className="w-full px-3 py-2.5 bg-surface-2 border border-border rounded-xl text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-electric transition-colors" />
+              <input value={form.passportNumber} onChange={set("passportNumber")} placeholder="567890" className={inputCls} />
             </div>
           </div>
           <div>
             <label className="text-xs text-muted-foreground mb-1.5 block">Кем выдан</label>
-            <input value={form.passportIssued} onChange={set("passportIssued")} placeholder="УМВД России по г. Москве"
-              className="w-full px-3 py-2.5 bg-surface-2 border border-border rounded-xl text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-electric transition-colors" />
+            <input value={form.passportIssued} onChange={set("passportIssued")} placeholder="УМВД России по г. Москве" className={inputCls} />
           </div>
           <div>
             <label className="text-xs text-muted-foreground mb-1.5 block">Дата выдачи</label>
-            <input type="date" value={form.passportDate} onChange={set("passportDate")}
-              className="w-full px-3 py-2.5 bg-surface-2 border border-border rounded-xl text-sm text-foreground focus:outline-none focus:border-electric transition-colors" />
+            <input type="date" value={form.passportDate} onChange={set("passportDate")} className={inputCls} />
           </div>
         </div>
       ),
     },
     {
-      title: "Транспортное средство",
+      title: "ТС и полис",
       icon: "Car",
       fields: (
         <div className="space-y-4">
           <div>
-            <label className="text-xs text-muted-foreground mb-1.5 block">Марка и модель</label>
-            <input value={form.vehicle} onChange={set("vehicle")} placeholder="Toyota Camry 2022"
-              className="w-full px-3 py-2.5 bg-surface-2 border border-border rounded-xl text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-electric transition-colors" />
+            <label className="text-xs text-muted-foreground mb-1.5 block">Марка и модель ТС</label>
+            <input value={form.vehicle} onChange={set("vehicle")} placeholder="Toyota Camry 2022" className={inputCls} />
           </div>
           <div>
             <label className="text-xs text-muted-foreground mb-1.5 block">Государственный номер</label>
-            <input value={form.vehiclePlate} onChange={set("vehiclePlate")} placeholder="А 123 БВ 77"
-              className="w-full px-3 py-2.5 bg-surface-2 border border-border rounded-xl text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-electric transition-colors" />
+            <input value={form.vehiclePlate} onChange={set("vehiclePlate")} placeholder="А 123 БВ 77" className={inputCls} />
           </div>
-        </div>
-      ),
-    },
-    {
-      title: "Полис и страховая",
-      icon: "Shield",
-      fields: (
-        <div className="space-y-4">
           <div>
             <label className="text-xs text-muted-foreground mb-1.5 block">Номер полиса</label>
-            <input value={form.policyNumber} onChange={set("policyNumber")} placeholder="ААА 1234567890"
-              className="w-full px-3 py-2.5 bg-surface-2 border border-border rounded-xl text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-electric transition-colors" />
+            <input value={form.policyNumber} onChange={set("policyNumber")} placeholder="ААА 1234567890" className={inputCls} />
           </div>
           <div>
             <label className="text-xs text-muted-foreground mb-1.5 block">Страховая компания</label>
-            <input value={form.insuranceCompany} onChange={set("insuranceCompany")} placeholder="СОГАЗ, Росгосстрах..."
-              className="w-full px-3 py-2.5 bg-surface-2 border border-border rounded-xl text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-electric transition-colors" />
+            <input value={form.insuranceCompany} onChange={set("insuranceCompany")} placeholder="СОГАЗ, Росгосстрах..." className={inputCls} />
           </div>
           <div>
             <label className="text-xs text-muted-foreground mb-1.5 block">Суд</label>
-            <input value={form.court} onChange={set("court")} placeholder="Арбитражный суд г. Москвы"
-              className="w-full px-3 py-2.5 bg-surface-2 border border-border rounded-xl text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-electric transition-colors" />
+            <input value={form.court} onChange={set("court")} placeholder="Арбитражный суд г. Москвы" className={inputCls} />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-xs text-muted-foreground mb-1.5 block">Дедлайн</label>
-              <input type="date" value={form.deadline} onChange={set("deadline")}
-                className="w-full px-3 py-2.5 bg-surface-2 border border-border rounded-xl text-sm text-foreground focus:outline-none focus:border-electric transition-colors" />
+              <input type="date" value={form.deadline} onChange={set("deadline")} className={inputCls} />
             </div>
             <div>
               <label className="text-xs text-muted-foreground mb-1.5 block">Приоритет</label>
-              <select value={form.priority} onChange={set("priority")}
-                className="w-full px-3 py-2.5 bg-surface-2 border border-border rounded-xl text-sm text-foreground focus:outline-none focus:border-electric transition-colors">
+              <select value={form.priority} onChange={set("priority")} className={inputCls}>
                 <option value="high">Высокий</option>
                 <option value="medium">Средний</option>
                 <option value="low">Низкий</option>
@@ -452,6 +491,129 @@ const NewCaseModal = ({ onClose, onSave }: { onClose: () => void; onSave: (c: Ca
   );
 };
 
+// ───────── Statement generator ─────────
+const generateStatement = (c: Case): string => {
+  const today = new Date().toLocaleDateString("ru-RU");
+  const bd = c.birthDate ? new Date(c.birthDate).toLocaleDateString("ru-RU") : "________";
+  const pd = c.passportDate ? new Date(c.passportDate).toLocaleDateString("ru-RU") : "________";
+  const court = c.court || "________________";
+  const passport = [c.passportSeries, c.passportNumber].filter(Boolean).join(" ") || "________";
+
+  return `В ${court}
+
+Истец: ${c.fullName || "________________"},
+${bd} года рождения,
+проживающий(ая) по адресу: ${c.address || "________________"},
+паспорт: серия ${passport},
+выдан: ${c.passportIssued || "________________"} ${pd} г.
+
+ИСКОВОЕ ЗАЯВЛЕНИЕ
+о взыскании страхового возмещения
+
+Я, ${c.fullName || "________________"}, являюсь собственником транспортного средства ${c.vehicle || "________________"}, государственный регистрационный знак ${c.vehiclePlate || "________________"}.
+
+Транспортное средство застраховано по полису ОСАГО № ${c.policyNumber || "________________"}, страховая компания: ${c.insuranceCompany || "________________"}.
+
+В результате произошедшего страхового случая мне был причинён ущерб, который страховая компания отказывается возмещать в добровольном порядке либо выплатила возмещение не в полном объёме.
+
+На основании изложенного, руководствуясь ст. 12, 16.1 Федерального закона «Об обязательном страховании гражданской ответственности владельцев транспортных средств»,
+
+ПРОШУ:
+
+1. Взыскать с ${c.insuranceCompany || "ответчика"} страховое возмещение в полном объёме.
+2. Взыскать с ответчика неустойку за нарушение сроков выплаты страхового возмещения.
+3. Взыскать с ответчика судебные расходы и расходы на оплату услуг представителя.
+
+Приложения:
+— копия паспорта;
+— свидетельство о регистрации ТС;
+— страховой полис № ${c.policyNumber || "________________"};
+— документы о страховом случае;
+— досудебная претензия (при наличии).
+
+${today} г.                    ________________ / ${c.fullName || ""}`;
+};
+
+// ───────── Case Card ─────────
+const CaseCard = ({ c }: { c: Case }) => {
+  const [tab, setTab] = useState<"data" | "statement">("data");
+  const [copied, setCopied] = useState(false);
+
+  const fmt = (label: string, value: string) => value ? (
+    <div key={label}>
+      <div className="text-xs text-muted-foreground mb-0.5">{label}</div>
+      <div className="text-sm text-foreground">{value}</div>
+    </div>
+  ) : null;
+
+  const statement = generateStatement(c);
+
+  const copyStatement = () => {
+    navigator.clipboard.writeText(statement).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
+  return (
+    <div className="border-t border-border animate-fade-in">
+      {/* Tabs */}
+      <div className="flex border-b border-border">
+        {([["data", "FileText", "Данные дела"], ["statement", "ScrollText", "Заявление"]] as const).map(([key, icon, label]) => (
+          <button
+            key={key}
+            onClick={() => setTab(key)}
+            className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 transition-all ${tab === key ? "border-electric text-electric" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+          >
+            <Icon name={icon} size={14} />
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {tab === "data" && (
+        <div className="p-4">
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+            {fmt("ФИО", c.fullName)}
+            {fmt("Дата рождения", c.birthDate ? new Date(c.birthDate).toLocaleDateString("ru-RU") : "")}
+            {fmt("Адрес", c.address)}
+            {fmt("Паспорт серия/номер", [c.passportSeries, c.passportNumber].filter(Boolean).join(" "))}
+            {fmt("Кем выдан", c.passportIssued)}
+            {fmt("Дата выдачи", c.passportDate ? new Date(c.passportDate).toLocaleDateString("ru-RU") : "")}
+            {fmt("Транспортное средство", c.vehicle)}
+            {fmt("Гос. номер", c.vehiclePlate)}
+            {fmt("Полис", c.policyNumber)}
+            {fmt("Страховая компания", c.insuranceCompany)}
+            {fmt("Суд", c.court || "")}
+            {fmt("Дедлайн", c.deadline)}
+          </div>
+        </div>
+      )}
+
+      {tab === "statement" && (
+        <div className="p-4">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-green-400" />
+              <span className="text-xs text-muted-foreground">Заявление сформировано автоматически по данным дела</span>
+            </div>
+            <button
+              onClick={copyStatement}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-surface-2 hover:bg-surface-3 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <Icon name={copied ? "Check" : "Copy"} size={13} className={copied ? "text-green-400" : ""} />
+              {copied ? "Скопировано!" : "Копировать"}
+            </button>
+          </div>
+          <div className="bg-surface-2 border border-border rounded-xl p-5 font-mono text-xs text-foreground leading-relaxed whitespace-pre-wrap scrollbar-thin overflow-auto max-h-[420px]">
+            {statement}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ───────── Section: Cases ─────────
 const CasesSection = () => {
   const [cases, setCases] = useState<Case[]>(CASES);
@@ -461,8 +623,8 @@ const CasesSection = () => {
 
   const filters = [
     { key: "all", label: "Все" },
-    { key: "urgent", label: "Срочные" },
     { key: "active", label: "Активные" },
+    { key: "urgent", label: "Срочные" },
     { key: "pending", label: "Ожидание" },
     { key: "closed", label: "Закрытые" },
   ];
@@ -472,13 +634,6 @@ const CasesSection = () => {
     setCases(prev => [c, ...prev]);
     setShowModal(false);
   };
-
-  const fmt = (label: string, value: string) => value ? (
-    <div key={label}>
-      <div className="text-xs text-muted-foreground mb-0.5">{label}</div>
-      <div className="text-sm text-foreground">{value}</div>
-    </div>
-  ) : null;
 
   return (
     <div className="space-y-4 animate-fade-in">
@@ -500,11 +655,8 @@ const CasesSection = () => {
 
       <div className="flex gap-2 flex-wrap">
         {filters.map(f => (
-          <button
-            key={f.key}
-            onClick={() => setFilter(f.key)}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${filter === f.key ? "bg-electric text-background" : "bg-surface-2 text-muted-foreground hover:text-foreground"}`}
-          >
+          <button key={f.key} onClick={() => setFilter(f.key)}
+            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${filter === f.key ? "bg-electric text-background" : "bg-surface-2 text-muted-foreground hover:text-foreground"}`}>
             {f.label}
           </button>
         ))}
@@ -517,10 +669,8 @@ const CasesSection = () => {
           </div>
           <div className="text-foreground font-semibold mb-1">Дел пока нет</div>
           <div className="text-sm text-muted-foreground mb-4">Нажмите «Новое дело», чтобы добавить первое</div>
-          <button
-            onClick={() => setShowModal(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-electric text-background rounded-xl text-sm font-medium hover:opacity-90 transition-opacity"
-          >
+          <button onClick={() => setShowModal(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-electric text-background rounded-xl text-sm font-medium hover:opacity-90 transition-opacity">
             <Icon name="Plus" size={16} />
             Новое дело
           </button>
@@ -530,40 +680,31 @@ const CasesSection = () => {
       <div className="space-y-3">
         {filtered.map(c => (
           <div key={c.id} className="rounded-xl border border-border surface hover:border-electric/30 transition-colors overflow-hidden">
-            {/* Header row */}
             <button
-              className="w-full flex items-start justify-between gap-3 p-4 text-left"
+              className="w-full flex items-center justify-between gap-3 p-4 text-left"
               onClick={() => setExpanded(expanded === c.id ? null : c.id)}
             >
-              <div className="flex items-center gap-2 min-w-0">
-                <PriorityDot priority={c.priority} />
-                <h3 className="font-semibold text-foreground truncate">{c.fullName}</h3>
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-9 h-9 rounded-xl bg-electric/10 flex items-center justify-center shrink-0">
+                  <span className="text-electric font-bold">{(c.fullName || "?")[0]}</span>
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <PriorityDot priority={c.priority} />
+                    <h3 className="font-semibold text-foreground truncate">{c.fullName}</h3>
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-0.5 flex items-center gap-2">
+                    {c.vehicle && <span>{c.vehicle}</span>}
+                    {c.insuranceCompany && <><span>·</span><span>{c.insuranceCompany}</span></>}
+                  </div>
+                </div>
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 <StatusBadge status={c.status} />
                 <Icon name={expanded === c.id ? "ChevronUp" : "ChevronDown"} size={16} className="text-muted-foreground" />
               </div>
             </button>
-
-            {/* Expanded details */}
-            {expanded === c.id && (
-              <div className="border-t border-border px-4 pb-4 pt-3 animate-fade-in">
-                <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-                  {fmt("ФИО", c.fullName)}
-                  {fmt("Дата рождения", c.birthDate ? new Date(c.birthDate).toLocaleDateString("ru-RU") : "")}
-                  {fmt("Адрес", c.address)}
-                  {fmt("Паспорт", [c.passportSeries, c.passportNumber].filter(Boolean).join(" "))}
-                  {fmt("Кем выдан", c.passportIssued)}
-                  {fmt("Дата выдачи", c.passportDate ? new Date(c.passportDate).toLocaleDateString("ru-RU") : "")}
-                  {fmt("Транспортное средство", c.vehicle)}
-                  {fmt("Гос. номер", c.vehiclePlate)}
-                  {fmt("Полис", c.policyNumber)}
-                  {fmt("Страховая компания", c.insuranceCompany)}
-                  {fmt("Суд", c.court || "")}
-                  {fmt("Дедлайн", c.deadline)}
-                </div>
-              </div>
-            )}
+            {expanded === c.id && <CaseCard c={c} />}
           </div>
         ))}
       </div>
