@@ -339,6 +339,31 @@ const NewCaseModal = ({ onClose, onSave }: { onClose: () => void; onSave: (c: Ca
             <label className="text-xs text-muted-foreground mb-1.5 block">Адрес проживания</label>
             <input value={form.address} onChange={set("address")} placeholder="г. Москва, ул. Ленина, д. 1, кв. 1" className={inputCls} />
           </div>
+          <div className="border-t border-border pt-4">
+            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Водитель ТС клиента</div>
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs text-muted-foreground mb-1.5 block">ФИО водителя</label>
+                <input value={form.driverFullName} onChange={set("driverFullName")} placeholder="Иванов Иван Иванович" className={inputCls} />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1.5 block">Дата рождения</label>
+                <input type="date" value={form.driverBirthDate} onChange={set("driverBirthDate")} className={inputCls} />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1.5 block">Место проживания</label>
+                <input value={form.driverAddress} onChange={set("driverAddress")} placeholder="г. Москва, ул. Ленина, д. 1, кв. 1" className={inputCls} />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1.5 block">Страховая компания</label>
+                <input value={form.driverInsuranceCompany} onChange={set("driverInsuranceCompany")} placeholder="СОГАЗ, Росгосстрах..." className={inputCls} />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1.5 block">Номер полиса</label>
+                <input value={form.policyNumber} onChange={set("policyNumber")} placeholder="ААА 1234567890" className={inputCls} />
+              </div>
+            </div>
+          </div>
         </div>
       ),
     },
@@ -404,33 +429,6 @@ const NewCaseModal = ({ onClose, onSave }: { onClose: () => void; onSave: (c: Ca
           <div>
             <label className="text-xs text-muted-foreground mb-1.5 block">Страховая компания виновника</label>
             <input value={form.guiltInsuranceCompany} onChange={set("guiltInsuranceCompany")} placeholder="Альфастрахование, РЕСО..." className={inputCls} />
-          </div>
-        </div>
-      ),
-    },
-    {
-      title: "Водитель ТС",
-      icon: "UserCheck",
-      fields: (
-        <div className="space-y-4">
-          <p className="text-xs text-muted-foreground bg-surface-2 rounded-xl px-3 py-2">
-            Водитель транспортного средства клиента — если отличается от собственника (истца)
-          </p>
-          <div>
-            <label className="text-xs text-muted-foreground mb-1.5 block">ФИО водителя</label>
-            <input value={form.driverFullName} onChange={set("driverFullName")} placeholder="Иванов Иван Иванович" className={inputCls} />
-          </div>
-          <div>
-            <label className="text-xs text-muted-foreground mb-1.5 block">Дата рождения</label>
-            <input type="date" value={form.driverBirthDate} onChange={set("driverBirthDate")} className={inputCls} />
-          </div>
-          <div>
-            <label className="text-xs text-muted-foreground mb-1.5 block">Место проживания</label>
-            <input value={form.driverAddress} onChange={set("driverAddress")} placeholder="г. Москва, ул. Ленина, д. 1, кв. 1" className={inputCls} />
-          </div>
-          <div>
-            <label className="text-xs text-muted-foreground mb-1.5 block">Страховая компания</label>
-            <input value={form.driverInsuranceCompany} onChange={set("driverInsuranceCompany")} placeholder="СОГАЗ, Росгосстрах..." className={inputCls} />
           </div>
         </div>
       ),
