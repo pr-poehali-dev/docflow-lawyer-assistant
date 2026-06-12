@@ -1,9 +1,122 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import Icon from "@/components/ui/icon";
 import { CLIENTS, DOCUMENTS, TASKS } from "@/data/mockData";
 import { StatusBadge, PriorityDot } from "./DashboardSection";
+import type { Client } from "@/types";
 
 type IconName = Parameters<typeof Icon>[0]["name"];
+
+const inputCls = "w-full px-3 py-2.5 bg-surface-2 border border-border rounded-xl text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-electric transition-colors";
+
+// ───────── Client Modal ─────────
+const emptyClient: Omit<Client, "id"> = {
+  name: "", phone: "", email: "", type: "Физическое лицо",
+  cases: 0, lastContact: "", status: "new",
+};
+
+const ClientModal = ({ client, onClose, onSave }: {
+  client: Client | null;
+  onClose: () => void;
+  onSave: (c: Client) => void;
+}) => {
+  const [form, setForm] = useState<Omit<Client, "id">>(
+    client ? { name: client.name, phone: client.phone, email: client.email, type: client.type, cases: client.cases, lastContact: client.lastContact, status: client.status }
+    : { ...emptyClient }
+  );
+
+  const set = (k: keyof typeof emptyClient) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
+    setForm(f => ({ ...f, [k]: e.target.value }));
+
+  const handleSave = () => {
+    if (!form.name.trim()) return;
+    onSave({
+      id: client?.id ?? Date.now(),
+      ...form,
+      lastContact: form.lastContact || new Date().toLocaleDateString("ru-RU"),
+    });
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative w-full max-w-md bg-surface border border-border rounded-2xl shadow-2xl animate-scale-in overflow-hidden">
+        <div className="flex items-center justify-between p-5 border-b border-border">
+          <h3 className="font-bold text-foreground text-lg">{client ? "Редактировать клиента" : "Новый клиент"}</h3>
+          <button onClick={onClose} className="p-2 rounded-xl hover:bg-surface-2 transition-colors text-muted-foreground hover:text-foreground">
+            <Icon name="X" size={18} />
+          </button>
+        </div>
+        <div className="p-5 space-y-4 overflow-y-auto max-h-[70vh]">
+          <div>
+            <label className="text-xs text-muted-foreground mb-1.5 block">ФИО / Название <span className="text-red-400">*</span></label>
+            <input value={form.name} onChange={set("name")} placeholder="Иванов Иван Иванович" className={inputCls} />
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground mb-1.5 block">Тип клиента</label>
+            <select value={form.type} onChange={set("type")} className={inputCls}>
+              <option>Физическое лицо</option>
+              <option>Юридическое лицо</option>
+              <option>ИП</option>
+            </select>
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground mb-1.5 block">Телефон</label>
+            <input value={form.phone} onChange={set("phone")} placeholder="+7 999 000-00-00" className={inputCls} />
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground mb-1.5 block">Email</label>
+            <input value={form.email} onChange={set("email")} placeholder="client@mail.ru" className={inputCls} />
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground mb-1.5 block">Статус</label>
+            <select value={form.status} onChange={set("status")} className={inputCls}>
+              <option value="new">Новый</option>
+              <option value="active">Активный</option>
+              <option value="closed">Закрытый</option>
+            </select>
+          </div>
+        </div>
+        <div className="flex items-center justify-between p-5 border-t border-border">
+          <button onClick={onClose} className="px-4 py-2 bg-surface-2 text-muted-foreground rounded-xl text-sm font-medium hover:text-foreground transition-colors">
+            Отмена
+          </button>
+          <button onClick={handleSave} disabled={!form.name.trim()}
+            className="flex items-center gap-2 px-5 py-2 bg-electric text-background rounded-xl text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed">
+            <Icon name="Save" size={16} />
+            Сохранить
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ───────── Delete Confirm ─────────
+const DeleteConfirm = ({ name, onConfirm, onCancel }: { name: string; onConfirm: () => void; onCancel: () => void }) => (
+  <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" onClick={onCancel} />
+    <div className="relative w-full max-w-sm bg-surface border border-border rounded-2xl shadow-2xl animate-scale-in p-6">
+      <div className="flex items-center gap-3 mb-4">
+        <div className="w-10 h-10 rounded-xl bg-red-500/10 flex items-center justify-center shrink-0">
+          <Icon name="Trash2" size={18} className="text-red-400" />
+        </div>
+        <div>
+          <div className="font-bold text-foreground">Удалить клиента?</div>
+          <div className="text-sm text-muted-foreground mt-0.5">{name}</div>
+        </div>
+      </div>
+      <p className="text-sm text-muted-foreground mb-5">Это действие нельзя отменить.</p>
+      <div className="flex gap-3">
+        <button onClick={onCancel} className="flex-1 px-4 py-2 bg-surface-2 text-muted-foreground rounded-xl text-sm font-medium hover:text-foreground transition-colors">
+          Отмена
+        </button>
+        <button onClick={onConfirm} className="flex-1 px-4 py-2 bg-red-500 text-white rounded-xl text-sm font-medium hover:opacity-90 transition-opacity">
+          Удалить
+        </button>
+      </div>
+    </div>
+  </div>
+);
 
 // ───────── Section: Clients ─────────
 const highlight = (text: string, query: string) => {
@@ -20,11 +133,14 @@ const highlight = (text: string, query: string) => {
 };
 
 export const ClientsSection = () => {
+  const [clients, setClients] = useState<Client[]>(CLIENTS);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [modalClient, setModalClient] = useState<Client | null | "new">(null);
+  const [deleteTarget, setDeleteTarget] = useState<Client | null>(null);
 
   const q = search.toLowerCase();
-  const filtered = CLIENTS.filter(c => {
+  const filtered = clients.filter(c => {
     const matchSearch = !q ||
       c.name.toLowerCase().includes(q) ||
       c.type.toLowerCase().includes(q) ||
@@ -41,14 +157,43 @@ export const ClientsSection = () => {
     { key: "closed", label: "Закрытые" },
   ];
 
+  const handleSave = (saved: Client) => {
+    setClients(prev => prev.some(c => c.id === saved.id)
+      ? prev.map(c => c.id === saved.id ? saved : c)
+      : [saved, ...prev]
+    );
+    setModalClient(null);
+  };
+
+  const handleDelete = (client: Client) => {
+    setClients(prev => prev.filter(c => c.id !== client.id));
+    setDeleteTarget(null);
+  };
+
   return (
     <div className="space-y-4 animate-fade-in">
+      {modalClient !== null && (
+        <ClientModal
+          client={modalClient === "new" ? null : modalClient}
+          onClose={() => setModalClient(null)}
+          onSave={handleSave}
+        />
+      )}
+      {deleteTarget && (
+        <DeleteConfirm
+          name={deleteTarget.name}
+          onConfirm={() => handleDelete(deleteTarget)}
+          onCancel={() => setDeleteTarget(null)}
+        />
+      )}
+
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xl font-bold text-foreground">Справочник клиентов</h2>
-          <p className="text-sm text-muted-foreground">{filtered.length} из {CLIENTS.length} клиентов</p>
+          <p className="text-sm text-muted-foreground">{filtered.length} из {clients.length} клиентов</p>
         </div>
-        <button className="flex items-center gap-2 px-4 py-2 bg-electric text-background rounded-lg text-sm font-medium hover:opacity-90 transition-opacity">
+        <button onClick={() => setModalClient("new")}
+          className="flex items-center gap-2 px-4 py-2 bg-electric text-background rounded-lg text-sm font-medium hover:opacity-90 transition-opacity">
           <Icon name="UserPlus" size={16} />
           Добавить
         </button>
@@ -95,7 +240,7 @@ export const ClientsSection = () => {
 
       <div className="space-y-3">
         {filtered.map(client => (
-          <div key={client.id} className="p-4 rounded-xl border border-border surface hover:border-electric/30 hover-scale cursor-pointer transition-colors">
+          <div key={client.id} className="p-4 rounded-xl border border-border surface hover:border-electric/30 transition-colors">
             <div className="flex items-center gap-4">
               <div className="w-11 h-11 rounded-xl bg-electric/10 flex items-center justify-center shrink-0">
                 <span className="text-electric font-bold text-lg">{client.name[0]}</span>
@@ -132,11 +277,13 @@ export const ClientsSection = () => {
                 </div>
               </div>
               <div className="flex gap-2">
-                <button className="p-2 rounded-lg bg-surface-2 hover:bg-surface-3 transition-colors">
-                  <Icon name="Phone" size={14} className="text-muted-foreground" />
+                <button onClick={() => setModalClient(client)}
+                  className="p-2 rounded-lg bg-surface-2 hover:bg-electric/10 hover:text-electric transition-colors">
+                  <Icon name="Pencil" size={14} className="text-muted-foreground" />
                 </button>
-                <button className="p-2 rounded-lg bg-surface-2 hover:bg-surface-3 transition-colors">
-                  <Icon name="Mail" size={14} className="text-muted-foreground" />
+                <button onClick={() => setDeleteTarget(client)}
+                  className="p-2 rounded-lg bg-surface-2 hover:bg-red-500/10 hover:text-red-400 transition-colors">
+                  <Icon name="Trash2" size={14} className="text-muted-foreground" />
                 </button>
               </div>
             </div>
