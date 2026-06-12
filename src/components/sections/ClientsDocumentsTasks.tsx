@@ -1,8 +1,10 @@
 import React, { useState } from "react";
 import Icon from "@/components/ui/icon";
-import { CLIENTS, DOCUMENTS, TASKS } from "@/data/mockData";
+import { CLIENTS, TASKS } from "@/data/mockData";
 import { StatusBadge, PriorityDot } from "./DashboardSection";
 import type { Client } from "@/types";
+
+export { DocumentsSection } from "./DocumentsSection";
 
 type IconName = Parameters<typeof Icon>[0]["name"];
 
@@ -286,78 +288,6 @@ export const ClientsSection = () => {
                   <Icon name="Trash2" size={14} className="text-muted-foreground" />
                 </button>
               </div>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-};
-
-// ───────── Section: Documents ─────────
-export const DocumentsSection = () => {
-  const [filter, setFilter] = useState("all");
-  const typeIcon: Record<string, string> = {
-    "Иск": "FileText", "Аналитика": "BarChart2", "Жалоба": "AlertOctagon",
-    "Отчёт": "FileBarChart", "Заключение": "CheckSquare",
-  };
-  const filtered = filter === "all" ? DOCUMENTS : DOCUMENTS.filter(d => d.status === filter);
-  const filterLabels: Record<string, string> = { all: "Все", final: "Финал", review: "Проверка", draft: "Черновики" };
-
-  return (
-    <div className="space-y-4 animate-fade-in">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-xl font-bold text-foreground">Документы</h2>
-          <p className="text-sm text-muted-foreground">{DOCUMENTS.length} документов</p>
-        </div>
-        <button className="flex items-center gap-2 px-4 py-2 bg-electric text-background rounded-lg text-sm font-medium hover:opacity-90 transition-opacity">
-          <Icon name="Upload" size={16} />
-          Загрузить
-        </button>
-      </div>
-      <div className="flex gap-2">
-        {["all", "final", "review", "draft"].map(f => (
-          <button key={f} onClick={() => setFilter(f)}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${filter === f ? "bg-electric text-background" : "bg-surface-2 text-muted-foreground hover:text-foreground"}`}>
-            {filterLabels[f]}
-          </button>
-        ))}
-      </div>
-      <div className="space-y-2">
-        {filtered.map(doc => (
-          <div key={doc.id} className="flex items-center gap-4 p-4 rounded-xl border border-border surface hover:border-electric/30 hover-scale cursor-pointer transition-colors">
-            <div className="w-10 h-10 rounded-xl bg-electric/10 flex items-center justify-center shrink-0">
-              <Icon name={(typeIcon[doc.type] || "File") as IconName} size={18} className="text-electric" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-0.5">
-                <h3 className="font-medium text-foreground truncate">{doc.title}</h3>
-                <StatusBadge status={doc.status} />
-              </div>
-              <div className="text-xs text-muted-foreground">{doc.case}</div>
-            </div>
-            <div className="hidden lg:flex items-center gap-6 text-right">
-              <div>
-                <div className="text-xs text-muted-foreground">Версия</div>
-                <div className="text-sm font-mono text-electric">v{doc.version}</div>
-              </div>
-              <div>
-                <div className="text-xs text-muted-foreground">Обновлён</div>
-                <div className="text-sm text-foreground">{doc.updated}</div>
-              </div>
-              <div>
-                <div className="text-xs text-muted-foreground">Размер</div>
-                <div className="text-sm text-foreground">{doc.size}</div>
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <button className="p-2 rounded-lg bg-surface-2 hover:bg-surface-3 transition-colors">
-                <Icon name="Download" size={14} className="text-muted-foreground" />
-              </button>
-              <button className="p-2 rounded-lg bg-surface-2 hover:bg-surface-3 transition-colors">
-                <Icon name="History" size={14} className="text-muted-foreground" />
-              </button>
             </div>
           </div>
         ))}

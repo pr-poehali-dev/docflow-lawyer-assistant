@@ -1,7 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Icon from "@/components/ui/icon";
 import type { Case, Client } from "@/types";
 import { CLIENTS, CASES, INSURANCE_COMPANIES } from "@/data/mockData";
+import { setCasesStore } from "@/components/sections/DocumentsSection";
 
 type IconName = Parameters<typeof Icon>[0]["name"];
 
@@ -617,6 +618,8 @@ const CasesSection = () => {
   const [filter, setFilter] = useState("all");
   const [showModal, setShowModal] = useState(false);
   const [expanded, setExpanded] = useState<number | null>(null);
+
+  useEffect(() => { setCasesStore(cases); }, [cases]);
 
   const filters = [
     { key: "all", label: "Все" },
