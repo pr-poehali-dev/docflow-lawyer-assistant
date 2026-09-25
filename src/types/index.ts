@@ -59,3 +59,78 @@ export interface Payment {
   type: "retainer" | "hourly" | "success_fee" | "consultation";
   comment?: string;
 }
+
+// ───────── Реальные данные CRM (backend) ─────────
+export interface ClientRecord {
+  id: number;
+  name: string;
+  client_type: string;
+  phone: string;
+  email: string;
+  status: "active" | "new" | "closed";
+  birth_date: string | null;
+  address: string;
+  passport_series: string;
+  passport_number: string;
+  passport_issued: string;
+  passport_date: string | null;
+  inn: string;
+  ogrn: string;
+  kpp: string;
+  bank_details: string;
+  last_contact: string | null;
+  cases_count?: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface CaseRecord {
+  id: number;
+  client_id: number;
+  title: string;
+  category: string;
+  status: "active" | "pending" | "closed" | "urgent";
+  priority: "high" | "medium" | "low";
+  deadline: string | null;
+  court: string;
+  vehicle: string;
+  vehicle_plate: string;
+  policy_number: string;
+  insurance_company: string;
+  driver_full_name: string;
+  driver_birth_date: string | null;
+  driver_address: string;
+  driver_insurance_company: string;
+  incident_date: string | null;
+  incident_place: string;
+  guilt_full_name: string;
+  guilt_birth_date: string | null;
+  guilt_address: string;
+  guilt_phone: string;
+  guilt_owner_name: string;
+  guilt_owner_address: string;
+  guilt_vehicle: string;
+  guilt_vehicle_plate: string;
+  guilt_insurance_company: string;
+  guilt_policy_number: string;
+  amount: number | null;
+  contract_number: string;
+  contract_date: string | null;
+  circumstances: string;
+  desired_result: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export type DocTypeKey = "zayavlenie" | "pretenziya" | "utochnenie" | "dogovor";
+
+export interface GeneratedDocument {
+  id: number;
+  case_id: number;
+  client_id: number;
+  doc_type: DocTypeKey;
+  title: string;
+  docx_url: string;
+  pdf_url: string;
+  created_at: string;
+}
