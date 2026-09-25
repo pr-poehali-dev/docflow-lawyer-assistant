@@ -4,51 +4,51 @@
 
 @layer base {
   :root {
-    --background: 220 20% 6%;
+    --background: 218 45% 7%;
     --foreground: 210 20% 92%;
 
-    --card: 220 18% 9%;
+    --card: 218 38% 10%;
     --card-foreground: 210 20% 92%;
 
-    --popover: 220 18% 9%;
+    --popover: 218 38% 10%;
     --popover-foreground: 210 20% 92%;
 
-    --primary: 217 91% 60%;
-    --primary-foreground: 220 20% 6%;
+    --primary: 42 87% 55%;
+    --primary-foreground: 218 45% 7%;
 
-    --secondary: 220 15% 14%;
+    --secondary: 218 30% 15%;
     --secondary-foreground: 210 20% 80%;
 
-    --muted: 220 15% 12%;
-    --muted-foreground: 215 15% 50%;
+    --muted: 218 30% 13%;
+    --muted-foreground: 215 15% 55%;
 
-    --accent: 217 91% 60%;
-    --accent-foreground: 220 20% 6%;
+    --accent: 42 87% 55%;
+    --accent-foreground: 218 45% 7%;
 
     --destructive: 0 72% 58%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 220 15% 16%;
-    --input: 220 15% 14%;
-    --ring: 217 91% 60%;
+    --border: 218 30% 18%;
+    --input: 218 30% 15%;
+    --ring: 42 87% 55%;
 
     --radius: 0.75rem;
 
-    --sidebar-background: 220 20% 6%;
+    --sidebar-background: 218 45% 7%;
     --sidebar-foreground: 210 20% 80%;
-    --sidebar-primary: 217 91% 60%;
-    --sidebar-primary-foreground: 220 20% 6%;
-    --sidebar-accent: 220 15% 12%;
+    --sidebar-primary: 42 87% 55%;
+    --sidebar-primary-foreground: 218 45% 7%;
+    --sidebar-accent: 218 30% 13%;
     --sidebar-accent-foreground: 210 20% 80%;
-    --sidebar-border: 220 15% 14%;
-    --sidebar-ring: 217 91% 60%;
+    --sidebar-border: 218 30% 15%;
+    --sidebar-ring: 42 87% 55%;
 
     /* Custom */
-    --electric: 217 91% 60%;
-    --electric-glow: 217 91% 60%;
-    --surface: 220 18% 9%;
-    --surface-2: 220 15% 12%;
-    --surface-3: 220 15% 16%;
+    --electric: 42 87% 55%;
+    --electric-glow: 42 87% 55%;
+    --surface: 218 38% 10%;
+    --surface-2: 218 30% 13%;
+    --surface-3: 218 30% 18%;
     --text-primary: 210 20% 92%;
     --text-secondary: 215 15% 60%;
     --success: 142 70% 45%;
@@ -100,12 +100,12 @@
 
   .glow-electric {
     box-shadow:
-      0 0 20px hsl(217 91% 60% / 0.3),
-      0 0 60px hsl(217 91% 60% / 0.1);
+      0 0 20px hsl(42 87% 55% / 0.3),
+      0 0 60px hsl(42 87% 55% / 0.1);
   }
 
   .glow-electric-sm {
-    box-shadow: 0 0 10px hsl(217 91% 60% / 0.25);
+    box-shadow: 0 0 10px hsl(42 87% 55% / 0.25);
   }
 
   .surface {
@@ -128,8 +128,8 @@
 
   .grid-pattern {
     background-image:
-      linear-gradient(hsl(217 91% 60% / 0.04) 1px, transparent 1px),
-      linear-gradient(90deg, hsl(217 91% 60% / 0.04) 1px, transparent 1px);
+      linear-gradient(hsl(42 87% 55% / 0.04) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(42 87% 55% / 0.04) 1px, transparent 1px);
     background-size: 40px 40px;
   }
 
@@ -153,11 +153,11 @@
 
   .hover-scale:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 30px hsl(217 91% 60% / 0.15);
+    box-shadow: 0 8px 30px hsl(42 87% 55% / 0.15);
   }
 
   .nav-item-active {
-    background: hsl(217 91% 60% / 0.12);
+    background: hsl(42 87% 55% / 0.12);
     border-left: 3px solid hsl(var(--electric));
     color: hsl(var(--electric));
   }
@@ -181,9 +181,9 @@
   }
 
   .badge-info {
-    background: hsl(217 91% 60% / 0.15);
+    background: hsl(42 87% 55% / 0.15);
     color: hsl(217 91% 68%);
-    border: 1px solid hsl(217 91% 60% / 0.3);
+    border: 1px solid hsl(42 87% 55% / 0.3);
   }
 
   .scrollbar-thin {

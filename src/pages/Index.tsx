@@ -3,6 +3,7 @@ import Icon from "@/components/ui/icon";
 import type { Section } from "@/types";
 import { TASKS, EVENTS, PAYMENTS, NOTIFICATIONS } from "@/data/mockData";
 import CasesSection from "@/components/cases/CasesSection";
+import { useAuth } from "@/hooks/useAuth";
 import {
   Dashboard,
   ClientsSection,
@@ -17,6 +18,7 @@ import {
 type IconName = Parameters<typeof Icon>[0]["name"];
 
 export default function Index() {
+  const { logout } = useAuth();
   const [section, setSection] = useState<Section>("dashboard");
   const [notifOpen, setNotifOpen] = useState(false);
 
@@ -55,11 +57,11 @@ export default function Index() {
         <div className="p-5 border-b border-border">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-electric flex items-center justify-center glow-electric-sm">
-              <Icon name="Scale" size={18} className="text-background" />
+              <Icon name="ShieldCheck" size={18} className="text-background" />
             </div>
             <div>
-              <div className="font-bold text-foreground leading-none">LexOffice</div>
-              <div className="text-xs text-muted-foreground">Юридическая практика</div>
+              <div className="font-bold text-foreground leading-none">ЛЕГИС ПРО</div>
+              <div className="text-xs text-muted-foreground">Помощь при ДТП</div>
             </div>
           </div>
         </div>
@@ -95,12 +97,16 @@ export default function Index() {
         <div className="p-4 border-t border-border">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-surface-2 flex items-center justify-center">
-              <span className="text-electric font-bold">А</span>
+              <span className="text-electric font-bold">Л</span>
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-sm font-medium text-foreground">Алексей Правдин</div>
-              <div className="text-xs text-muted-foreground truncate">Адвокат</div>
+              <div className="text-sm font-medium text-foreground">Сотрудник</div>
+              <div className="text-xs text-muted-foreground truncate">ЛЕГИС ПРО</div>
             </div>
+            <button onClick={logout} title="Выйти"
+              className="p-1.5 rounded-lg text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-colors shrink-0">
+              <Icon name="LogOut" size={15} />
+            </button>
           </div>
         </div>
       </aside>
@@ -111,7 +117,7 @@ export default function Index() {
         <header className="sticky top-0 z-30 glass border-b border-border px-4 md:px-6 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="md:hidden w-8 h-8 rounded-xl bg-electric flex items-center justify-center">
-              <Icon name="Scale" size={16} className="text-background" />
+              <Icon name="ShieldCheck" size={16} className="text-background" />
             </div>
             <h1 className="text-base font-semibold text-foreground">
               {navItems.find(n => n.key === section)?.label}
