@@ -85,7 +85,7 @@ export interface UserRecord {
   id: number;
   name: string;
   email: string;
-  role: "admin" | "lawyer" | "staff" | "readonly";
+  role: "admin" | "lawyer" | "employee" | "viewer";
   status: "active" | "inactive";
   last_login: string | null;
   created_at: string;

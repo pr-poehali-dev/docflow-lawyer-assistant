@@ -1,6 +1,10 @@
 import json
 import os
-from typing import Dict, Any
+import hmac
+import hashlib
+import base64
+import time
+from typing import Dict, Any, Optional
 import psycopg2
 import psycopg2.extras
 
@@ -20,6 +24,34 @@ CORS_HEADERS = {
 }
 
 
+def _sign(payload: str, secret: str) -> str:
+    return base64.urlsafe_b64encode(
+        hmac.new(secret.encode(), payload.encode(), hashlib.sha256).digest()
+    ).decode().rstrip('=')
+
+
+def verify_token(token: str, secret: str) -> Optional[Dict[str, Any]]:
+    try:
+        payload, sig = token.split('.', 1)
+        if not hmac.compare_digest(sig, _sign(payload, secret)):
+            return None
+        padded = payload + '=' * (-len(payload) % 4)
+        data = json.loads(base64.urlsafe_b64decode(padded))
+        if time.time() >= data['exp']:
+            return None
+        return data
+    except Exception:
+        return None
+
+
+def get_auth(event: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    headers = event.get('headers') or {}
+    token = headers.get('X-Auth-Token') or headers.get('x-auth-token', '')
+    if not token:
+        return None
+    return verify_token(token, os.environ.get('AUTH_SECRET', ''))
+
+
 def row_to_dict(row, columns):
     d = dict(zip(columns, row))
     for k, v in d.items():
@@ -36,6 +68,12 @@ def handler(event: Dict[str, Any], context) -> Dict[str, Any]:
 
     if method == 'OPTIONS':
         return {'statusCode': 200, 'headers': CORS_HEADERS, 'body': ''}
+
+    auth = get_auth(event)
+    if not auth:
+        return {'statusCode': 401, 'headers': CORS_HEADERS, 'body': json.dumps({'error': 'Требуется вход в систему'}, ensure_ascii=False)}
+    if method != 'GET' and auth.get('role') == 'viewer':
+        return {'statusCode': 403, 'headers': CORS_HEADERS, 'body': json.dumps({'error': 'У вашей роли только права на просмотр'}, ensure_ascii=False)}
 
     conn = get_conn()
     cur = conn.cursor()

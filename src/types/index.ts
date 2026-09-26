@@ -1,7 +1,7 @@
 export type Section = "dashboard" | "cases" | "clients" | "documents" | "tasks" | "calendar" | "reviewed" | "payments" | "users";
 
 export interface SystemUser {
-  id: number; name: string; email: string; role: "admin" | "lawyer" | "assistant" | "readonly";
+  id: number; name: string; email: string; role: "admin" | "lawyer" | "employee" | "viewer";
   status: "active" | "inactive" | "blocked"; lastLogin: string; cases: number; avatar: string;
 }
 

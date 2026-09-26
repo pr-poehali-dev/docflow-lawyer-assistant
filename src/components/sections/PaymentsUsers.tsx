@@ -103,8 +103,8 @@ const inputCls = "w-full px-3 py-2.5 bg-surface-2 border border-border rounded-x
 const roleMap: Record<string, { label: string; cls: string; color: string; avatarCls: string }> = {
   admin:    { label: "Администратор",  cls: "badge-urgent",  color: "text-red-400",    avatarCls: "bg-red-500/15 text-red-400" },
   lawyer:   { label: "Юрист",          cls: "badge-active",  color: "text-green-400",  avatarCls: "bg-green-500/15 text-green-400" },
-  staff:    { label: "Сотрудник",      cls: "badge-info",    color: "text-blue-400",   avatarCls: "bg-blue-500/15 text-blue-400" },
-  readonly: { label: "Только просмотр", cls: "badge-pending", color: "text-yellow-400", avatarCls: "bg-yellow-500/15 text-yellow-400" },
+  employee: { label: "Сотрудник",      cls: "badge-info",    color: "text-blue-400",   avatarCls: "bg-blue-500/15 text-blue-400" },
+  viewer:   { label: "Только просмотр", cls: "badge-pending", color: "text-yellow-400", avatarCls: "bg-yellow-500/15 text-yellow-400" },
 };
 
 const eventMap: Record<string, { label: string; icon: string; color: string }> = {
@@ -167,8 +167,8 @@ const UserModal = ({ user, onClose, onSaved }: { user: UserRecord | null; onClos
             <select value={role} onChange={e => setRole(e.target.value as UserRecord["role"])} className={inputCls}>
               <option value="admin">Администратор</option>
               <option value="lawyer">Юрист</option>
-              <option value="staff">Сотрудник</option>
-              <option value="readonly">Только просмотр</option>
+              <option value="employee">Сотрудник</option>
+              <option value="viewer">Только просмотр</option>
             </select>
           </div>
           <div>
@@ -325,7 +325,7 @@ export const UsersSection = () => {
       {tab === "users" && (
         <>
           <div className="grid grid-cols-4 gap-3">
-            {(["admin", "lawyer", "staff", "readonly"] as const).map(role => (
+            {(["admin", "lawyer", "employee", "viewer"] as const).map(role => (
               <button key={role} onClick={() => setFilter(role)}
                 className={`p-3 rounded-xl border text-left transition-all hover-scale ${filter === role ? "border-electric/40 bg-electric/5" : "border-border surface"}`}>
                 <div className={`text-xl font-bold ${roleMap[role].color}`}>{users.filter(u => u.role === role).length}</div>

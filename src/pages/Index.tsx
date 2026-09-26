@@ -102,7 +102,7 @@ export default function Index() {
             <div className="flex-1 min-w-0">
               <div className="text-sm font-medium text-foreground truncate">{user?.name || "Сотрудник"}</div>
               <div className="text-xs text-muted-foreground truncate">
-                {user?.role === "admin" ? "Администратор" : user?.role === "lawyer" ? "Юрист" : user?.role === "readonly" ? "Только просмотр" : "Сотрудник"}
+                {user?.role === "admin" ? "Администратор" : user?.role === "lawyer" ? "Юрист" : user?.role === "viewer" ? "Только просмотр" : "Сотрудник"}
               </div>
             </div>
             <button onClick={logout} title="Выйти"

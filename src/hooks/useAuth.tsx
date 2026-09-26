@@ -10,7 +10,7 @@ export interface AuthUser {
   id: number;
   name: string;
   email: string;
-  role: "admin" | "lawyer" | "staff" | "readonly";
+  role: "admin" | "lawyer" | "employee" | "viewer";
 }
 
 interface AuthContextValue {

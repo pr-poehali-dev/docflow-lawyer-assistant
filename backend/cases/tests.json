@@ -7,10 +7,10 @@
       "expectedStatus": 200
     },
     {
-      "name": "Get all cases",
+      "name": "Get all cases without token requires auth",
       "method": "GET",
       "path": "/",
-      "expectedStatus": 200
+      "expectedStatus": 401
     }
   ]
 }

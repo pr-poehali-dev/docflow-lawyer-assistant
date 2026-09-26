@@ -15,7 +15,7 @@ CORS_HEADERS = {
     'Access-Control-Max-Age': '86400',
 }
 
-ROLES = {'admin', 'lawyer', 'staff', 'readonly'}
+ROLES = {'admin', 'lawyer', 'employee', 'viewer'}
 
 
 def get_conn():
