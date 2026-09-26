@@ -19,7 +19,12 @@ interface AuthContextValue {
   error: string | null;
   user: AuthUser | null;
   hasUsers: boolean | null;
+  pendingToken: string | null;
+  pendingEmail: string | null;
   login: (email: string, password: string) => Promise<boolean>;
+  verifyCode: (code: string) => Promise<boolean>;
+  resendCode: () => Promise<boolean>;
+  cancelPending: () => void;
   bootstrap: (name: string, email: string, password: string) => Promise<boolean>;
   logout: () => void;
 }
@@ -34,6 +39,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [error, setError] = useState<string | null>(null);
   const [user, setUser] = useState<AuthUser | null>(null);
   const [hasUsers, setHasUsers] = useState<boolean | null>(null);
+  const [pendingToken, setPendingToken] = useState<string | null>(null);
+  const [pendingEmail, setPendingEmail] = useState<string | null>(null);
   const idleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const logout = useCallback(() => {
@@ -93,6 +100,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => { checkToken(); }, [checkToken]);
 
+  const cancelPending = useCallback(() => {
+    setPendingToken(null);
+    setPendingEmail(null);
+    setError(null);
+  }, []);
+
   const login = useCallback(async (email: string, password: string) => {
     setError(null);
     try {
@@ -106,6 +119,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setError(data.error || "Неверный email или пароль");
         return false;
       }
+      if (data.requires_2fa) {
+        setPendingToken(data.pending_token);
+        setPendingEmail(data.email);
+        return true;
+      }
       localStorage.setItem(STORAGE_KEY, data.token);
       localStorage.setItem(USER_KEY, JSON.stringify(data.user));
       setUser(data.user);
@@ -116,6 +134,54 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return false;
     }
   }, []);
+
+  const verifyCode = useCallback(async (code: string) => {
+    if (!pendingToken) return false;
+    setError(null);
+    try {
+      const res = await fetch(`${AUTH_URL}?action=verify_2fa`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pending_token: pendingToken, code }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || "Неверный код");
+        return false;
+      }
+      localStorage.setItem(STORAGE_KEY, data.token);
+      localStorage.setItem(USER_KEY, JSON.stringify(data.user));
+      setUser(data.user);
+      setIsAuthenticated(true);
+      setPendingToken(null);
+      setPendingEmail(null);
+      return true;
+    } catch {
+      setError("Не удалось подключиться к серверу");
+      return false;
+    }
+  }, [pendingToken]);
+
+  const resendCode = useCallback(async () => {
+    if (!pendingToken) return false;
+    setError(null);
+    try {
+      const res = await fetch(`${AUTH_URL}?action=resend_2fa`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pending_token: pendingToken }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || "Не удалось отправить код повторно");
+        return false;
+      }
+      return true;
+    } catch {
+      setError("Не удалось подключиться к серверу");
+      return false;
+    }
+  }, [pendingToken]);
 
   const bootstrap = useCallback(async (name: string, email: string, password: string) => {
     setError(null);
@@ -142,7 +208,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, loading, error, user, hasUsers, login, bootstrap, logout }}>
+    <AuthContext.Provider value={{
+      isAuthenticated, loading, error, user, hasUsers,
+      pendingToken, pendingEmail,
+      login, verifyCode, resendCode, cancelPending, bootstrap, logout,
+    }}>
       {children}
     </AuthContext.Provider>
   );
