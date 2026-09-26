@@ -4,11 +4,19 @@ import type { ClientRecord, CaseRecord, GeneratedDocument, DocTypeKey } from "@/
 const CLIENTS_URL = func2url["clients"];
 const CASES_URL = func2url["cases"];
 const DOCGEN_URL = func2url["documents-generate"];
+const USERS_URL = func2url["users"];
+
+const AUTH_TOKEN_KEY = "legis_pro_auth_token";
 
 async function request<T>(url: string, options?: RequestInit): Promise<T> {
+  const token = localStorage.getItem(AUTH_TOKEN_KEY);
   const res = await fetch(url, {
     ...options,
-    headers: { "Content-Type": "application/json", ...(options?.headers || {}) },
+    headers: {
+      "Content-Type": "application/json",
+      "X-Auth-Token": token || "",
+      ...(options?.headers || {}),
+    },
   });
   if (!res.ok) {
     let message = `Ошибка запроса (${res.status})`;
@@ -70,4 +78,36 @@ export const documentsApi = {
       method: "POST",
       body: JSON.stringify({ doc_type: docType, case_id: caseId }),
     }),
+};
+
+// ───────── Users (сотрудники, только для администратора) ─────────
+export interface UserRecord {
+  id: number;
+  name: string;
+  email: string;
+  role: "admin" | "lawyer" | "staff" | "readonly";
+  status: "active" | "inactive";
+  last_login: string | null;
+  created_at: string;
+}
+
+export interface AuditEntry {
+  id: number;
+  user_id: number | null;
+  user_name: string | null;
+  email: string;
+  event: "login_success" | "login_failed" | "locked" | "bootstrap";
+  ip_address: string | null;
+  created_at: string;
+}
+
+export const usersApi = {
+  list: () => request<UserRecord[]>(USERS_URL),
+  audit: () => request<AuditEntry[]>(`${USERS_URL}?resource=audit`),
+  create: (data: { name: string; email: string; password: string; role: string }) =>
+    request<{ id: number }>(USERS_URL, { method: "POST", body: JSON.stringify(data) }),
+  update: (data: { id: number; name?: string; role?: string; status?: string; password?: string }) =>
+    request<{ success: boolean }>(USERS_URL, { method: "PUT", body: JSON.stringify(data) }),
+  remove: (id: number) =>
+    request<{ success: boolean }>(`${USERS_URL}?id=${id}`, { method: "DELETE" }),
 };

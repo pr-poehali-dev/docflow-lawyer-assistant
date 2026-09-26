@@ -18,7 +18,7 @@ import {
 type IconName = Parameters<typeof Icon>[0]["name"];
 
 export default function Index() {
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
   const [section, setSection] = useState<Section>("dashboard");
   const [notifOpen, setNotifOpen] = useState(false);
 
@@ -31,7 +31,7 @@ export default function Index() {
     { key: "calendar" as Section, icon: "Calendar", label: "Календарь" },
     { key: "reviewed" as Section, icon: "Archive", label: "Рассмотренные" },
     { key: "payments" as Section, icon: "Wallet", label: "Выплаты" },
-    { key: "users" as Section, icon: "ShieldCheck", label: "Пользователи" },
+    ...(user?.role === "admin" ? [{ key: "users" as Section, icon: "ShieldCheck", label: "Сотрудники" }] : []),
   ];
 
   const urgentCount = NOTIFICATIONS.filter(n => n.type === "urgent").length;
@@ -97,11 +97,13 @@ export default function Index() {
         <div className="p-4 border-t border-border">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-surface-2 flex items-center justify-center">
-              <span className="text-electric font-bold">Л</span>
+              <span className="text-electric font-bold">{(user?.name || "С")[0]}</span>
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-sm font-medium text-foreground">Сотрудник</div>
-              <div className="text-xs text-muted-foreground truncate">ЛЕГИС ПРО</div>
+              <div className="text-sm font-medium text-foreground truncate">{user?.name || "Сотрудник"}</div>
+              <div className="text-xs text-muted-foreground truncate">
+                {user?.role === "admin" ? "Администратор" : user?.role === "lawyer" ? "Юрист" : user?.role === "readonly" ? "Только просмотр" : "Сотрудник"}
+              </div>
             </div>
             <button onClick={logout} title="Выйти"
               className="p-1.5 rounded-lg text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-colors shrink-0">
