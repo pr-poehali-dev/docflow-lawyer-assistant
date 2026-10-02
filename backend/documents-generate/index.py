@@ -8,11 +8,11 @@ import time
 from datetime import datetime
 from typing import Dict, Any, Optional
 
-import boto3
 import psycopg2
 
 from templates import TEMPLATES, get_missing_fields
 from renderers import render_docx, render_pdf
+from storage import save_file
 
 CORS_HEADERS = {
     'Access-Control-Allow-Origin': '*',
@@ -177,22 +177,12 @@ def handler(event: Dict[str, Any], context) -> Dict[str, Any]:
         doc_label_safe = safe_filename(label)
         base_filename = f"{doc_label_safe}_{client_name_safe}_{today_str}"
 
-        s3 = boto3.client(
-            's3',
-            endpoint_url='https://bucket.poehali.dev',
-            aws_access_key_id=os.environ['AWS_ACCESS_KEY_ID'],
-            aws_secret_access_key=os.environ['AWS_SECRET_ACCESS_KEY'],
-        )
-        key_prefix = f"documents/case-{case_id}"
+        key_prefix = f"documents/case-{int(case_id)}"
         docx_key = f"{key_prefix}/{base_filename}.docx"
         pdf_key = f"{key_prefix}/{base_filename}.pdf"
 
-        s3.put_object(Bucket='files', Key=docx_key, Body=docx_bytes, ContentType='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
-        s3.put_object(Bucket='files', Key=pdf_key, Body=pdf_bytes, ContentType='application/pdf')
-
-        cdn_base = f"https://cdn.poehali.dev/projects/{os.environ['AWS_ACCESS_KEY_ID']}/bucket"
-        docx_url = f"{cdn_base}/{docx_key}"
-        pdf_url = f"{cdn_base}/{pdf_key}"
+        docx_url = save_file(docx_key, docx_bytes, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document')
+        pdf_url = save_file(pdf_key, pdf_bytes, 'application/pdf')
 
         title_escaped = label.replace("'", "''")
         docx_url_escaped = docx_url.replace("'", "''")

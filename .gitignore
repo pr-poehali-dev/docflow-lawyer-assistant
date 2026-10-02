@@ -26,3 +26,6 @@ builds
 
 # warmup/handoff артефакты
 tmp/
+.env
+backups/
+export/

@@ -5,6 +5,8 @@ import hashlib
 import base64
 import time
 import secrets
+import smtplib
+from email.message import EmailMessage
 from typing import Dict, Any, Optional
 import psycopg2
 import requests
@@ -108,8 +110,51 @@ def mask_email(email: str) -> str:
         return email
 
 
+def build_2fa_html(name: str, code: str) -> str:
+    return (
+        f'<p>Здравствуйте, {name}!</p>'
+        f'<p>Ваш код для входа в систему ЛЕГИС ПРО:</p>'
+        f'<p style="font-size:28px;font-weight:bold;letter-spacing:4px;">{code}</p>'
+        f'<p>Код действителен 10 минут. Если вы не пытались войти — проигнорируйте это письмо.</p>'
+    )
+
+
+def send_2fa_email_smtp(to_email: str, name: str, code: str) -> Optional[str]:
+    host = os.environ.get('SMTP_HOST', '')
+    if not host:
+        return 'Почтовый сервер (SMTP_HOST) не настроен'
+    port = int(os.environ.get('SMTP_PORT', '465'))
+    user = os.environ.get('SMTP_USER', '')
+    password = os.environ.get('SMTP_PASSWORD', '')
+    sender = os.environ.get('MAIL_FROM') or user
+    use_ssl = os.environ.get('SMTP_SSL', 'true').lower() in ('1', 'true', 'yes')
+
+    msg = EmailMessage()
+    msg['Subject'] = f'Код входа: {code}'
+    msg['From'] = sender
+    msg['To'] = to_email
+    msg.set_content(f'Ваш код для входа в ЛЕГИС ПРО: {code}. Код действителен 10 минут.')
+    msg.add_alternative(build_2fa_html(name, code), subtype='html')
+
+    try:
+        if use_ssl:
+            server = smtplib.SMTP_SSL(host, port, timeout=10)
+        else:
+            server = smtplib.SMTP(host, port, timeout=10)
+            server.starttls()
+        with server:
+            if user:
+                server.login(user, password)
+            server.send_message(msg)
+        return None
+    except Exception as e:
+        return f'Не удалось отправить письмо: {e}'
+
+
 def send_2fa_email(to_email: str, name: str, code: str) -> Optional[str]:
-    '''Отправляет письмо с кодом подтверждения через Resend. Возвращает текст ошибки или None при успехе'''
+    '''Отправляет письмо с кодом подтверждения (MAIL_BACKEND: resend | smtp). Возвращает текст ошибки или None при успехе'''
+    if os.environ.get('MAIL_BACKEND', 'resend') == 'smtp':
+        return send_2fa_email_smtp(to_email, name, code)
     api_key = os.environ.get('RESEND_API_KEY')
     if not api_key:
         return 'Отправка email не настроена администратором'
@@ -118,15 +163,10 @@ def send_2fa_email(to_email: str, name: str, code: str) -> Optional[str]:
             'https://api.resend.com/emails',
             headers={'Authorization': f'Bearer {api_key}', 'Content-Type': 'application/json'},
             json={
-                'from': FROM_EMAIL,
+                'from': os.environ.get('MAIL_FROM') or FROM_EMAIL,
                 'to': [to_email],
                 'subject': f'Код входа: {code}',
-                'html': (
-                    f'<p>Здравствуйте, {name}!</p>'
-                    f'<p>Ваш код для входа в систему ЛЕГИС ПРО:</p>'
-                    f'<p style="font-size:28px;font-weight:bold;letter-spacing:4px;">{code}</p>'
-                    f'<p>Код действителен 10 минут. Если вы не пытались войти — проигнорируйте это письмо.</p>'
-                ),
+                'html': build_2fa_html(name, code),
             },
             timeout=8,
         )

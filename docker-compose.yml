@@ -1,0 +1,84 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - dbdata:/var/lib/postgresql/data
+    networks: [internal]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      retries: 20
+
+  api:
+    build:
+      context: .
+      dockerfile: server/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      MAIN_DB_SCHEMA: public
+      AUTH_SECRET: ${AUTH_SECRET}
+      MAIL_BACKEND: smtp
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_SSL: ${SMTP_SSL}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASSWORD: ${SMTP_PASSWORD}
+      MAIL_FROM: ${MAIL_FROM}
+      STORAGE_BACKEND: local
+      STORAGE_DIR: /data/files
+      FILES_URL_PREFIX: /api/files
+    volumes:
+      - filesdata:/data/files
+    networks: [internal]
+
+  web:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.web
+    restart: unless-stopped
+    depends_on: [api]
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - caddydata:/data
+    networks: [internal]
+
+  backup:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_DB: ${POSTGRES_DB}
+      BACKUP_PASSPHRASE: ${BACKUP_PASSPHRASE}
+      BACKUP_KEEP_DAYS: ${BACKUP_KEEP_DAYS}
+      BACKUP_HOUR: ${BACKUP_HOUR}
+    volumes:
+      - filesdata:/data/files:ro
+      - ${BACKUP_DIR}:/backups
+      - ./deploy/backup.sh:/backup.sh:ro
+    command: ["sh", "/backup.sh"]
+    networks: [internal]
+
+networks:
+  internal:
+
+volumes:
+  dbdata:
+  filesdata:
+  caddydata:

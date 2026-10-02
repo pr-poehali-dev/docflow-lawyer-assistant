@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from "react";
-import func2url from "../../backend/func2url.json";
+import { endpoint } from "@/lib/endpoints";
 
-const AUTH_URL = func2url["auth"];
+const AUTH_URL = endpoint("auth");
 const STORAGE_KEY = "legis_pro_auth_token";
 const USER_KEY = "legis_pro_auth_user";
 const IDLE_TIMEOUT_MS = 30 * 60 * 1000; // автовыход после 30 минут бездействия

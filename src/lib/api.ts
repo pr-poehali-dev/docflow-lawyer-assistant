@@ -1,10 +1,10 @@
-import func2url from "../../backend/func2url.json";
+import { endpoint } from "@/lib/endpoints";
 import type { ClientRecord, CaseRecord, GeneratedDocument, DocTypeKey } from "@/types";
 
-const CLIENTS_URL = func2url["clients"];
-const CASES_URL = func2url["cases"];
-const DOCGEN_URL = func2url["documents-generate"];
-const USERS_URL = func2url["users"];
+const CLIENTS_URL = endpoint("clients");
+const CASES_URL = endpoint("cases");
+const DOCGEN_URL = endpoint("documents-generate");
+const USERS_URL = endpoint("users");
 
 const AUTH_TOKEN_KEY = "legis_pro_auth_token";
 
